@@ -17,9 +17,9 @@ namespace OopsAllGael
             {
                 Directory.SetCurrentDirectory(args[0]);
             }
-            catch (DirectoryNotFoundException e)
+            catch (DirectoryNotFoundException)
             {
-                Console.WriteLine("The specified directory does not exist. {0}", e);
+                Console.WriteLine("The specified directory does not exist. {0}");
                 return 1;
             }
 
@@ -30,6 +30,11 @@ namespace OopsAllGael
             }
 
             Gaelifier.Gaelify();
+
+            Console.WriteLine("Press Enter...");
+            while (Console.ReadKey().Key != ConsoleKey.Enter)
+            {
+            }
 
             return 0;
         }

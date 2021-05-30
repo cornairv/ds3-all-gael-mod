@@ -56,7 +56,6 @@ namespace OopsAllGael
             return enemy;
         }
 
-        // make a deepish copy
         public static PARAM.Row CopyRow(PARAM.Row other, PARAMDEF paramdef)
         {
             PARAM.Row row = new PARAM.Row(other.ID, other.Name, paramdef);
@@ -118,5 +117,103 @@ namespace OopsAllGael
             }
         }
 
+        public static object ObjectToArgType(object o, EMEVD.Instruction.ArgType argType)
+        {
+            switch (argType)
+            {
+                case EMEVD.Instruction.ArgType.Byte:
+                    return Convert.ToByte(o);
+                case EMEVD.Instruction.ArgType.SByte:
+                    return Convert.ToSByte(o);
+                case EMEVD.Instruction.ArgType.Int16:
+                    return Convert.ToInt16(o);
+                case EMEVD.Instruction.ArgType.UInt16:
+                    return Convert.ToUInt16(o);
+                case EMEVD.Instruction.ArgType.Int32:
+                    return Convert.ToInt32(o);
+                case EMEVD.Instruction.ArgType.UInt32:
+                    return Convert.ToUInt32(o);
+                case EMEVD.Instruction.ArgType.Single:
+                    return Convert.ToSingle(o);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        public static EMEVD.Instruction.ArgType ArgTypeFromType<T>()
+        {
+            Type t = typeof(T);
+            if (t == typeof(byte))
+                return EMEVD.Instruction.ArgType.Byte;
+            else if (t == typeof(sbyte))
+                return EMEVD.Instruction.ArgType.SByte;
+            else if (t == typeof(short))
+                return EMEVD.Instruction.ArgType.Int16;
+            else if (t == typeof(ushort))
+                return EMEVD.Instruction.ArgType.UInt16;
+            else if (t == typeof(int) || t == typeof(Enum))
+                return EMEVD.Instruction.ArgType.Int32;
+            else if (t == typeof(uint))
+                return EMEVD.Instruction.ArgType.UInt32;
+            else if (t == typeof(float))
+                return EMEVD.Instruction.ArgType.Single;
+            else
+                throw new ArgumentOutOfRangeException();
+        }
+
+        public static int ArgTypeToSize(EMEVD.Instruction.ArgType argType)
+        {
+            switch (argType)
+            {
+                case EMEVD.Instruction.ArgType.Byte:
+                case EMEVD.Instruction.ArgType.SByte:
+                    return 1;
+                case EMEVD.Instruction.ArgType.Int16:
+                case EMEVD.Instruction.ArgType.UInt16:
+                    return 2;
+                case EMEVD.Instruction.ArgType.Int32:
+                case EMEVD.Instruction.ArgType.UInt32:
+                case EMEVD.Instruction.ArgType.Single:
+                    return 4;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        public static int GetPackedArgsLength(IEnumerable<EMEVD.Instruction.ArgType> args)
+        {
+            int packedSize = 0;
+            foreach (EMEVD.Instruction.ArgType arg in args)
+            {
+                int size = ArgTypeToSize(arg);
+                int remainder = packedSize % size;
+                packedSize += (size - remainder) % size;
+            }
+            return packedSize;
+        }
+
+        // index in instruction args => index in event parameters
+        public static int[] UnpackParams(List<EMEVD.Parameter> parameters, int index, EMEVD.Instruction.ArgType[] argTypes)
+        {
+            if (argTypes.Length == 0)
+                return new int[0];
+
+            parameters = parameters.FindAll(param => param.InstructionIndex == index);
+            parameters.Sort((p1, p2) => (int) p1.TargetStartByte - (int) p2.TargetStartByte);
+
+            int[] paramMap = Enumerable.Repeat(-1, argTypes.Length).ToArray();
+            for (int i = 0, j = 0, size = 0; i < argTypes.Length && j < parameters.Count; i++)
+            {
+                if (parameters[j].TargetStartByte == size)
+                {
+                    paramMap[i] = (int)parameters[j].SourceStartByte / 4;
+                    j++;
+                }
+                int bytes = ArgTypeToSize(argTypes[i]);
+                int remainder = size % bytes;
+                size += bytes - remainder;
+            }
+            return paramMap;
+        }
     }
 }
