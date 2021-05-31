@@ -27,6 +27,42 @@ namespace OopsAllGael
             "m51_00_00_00",
             "m51_01_00_00"
         };
+        public static readonly string[] _MAP_IDS =
+        {
+            "m40_00_00_00"
+        };
+
+        public static readonly int[] BOSS_IDS =
+        {
+            3000800,
+            3000830,
+            3000899,
+            3010800,
+            3100800,
+            3200851,
+            3300801,
+            3300850,
+            3410200,
+            3410830,
+            3410832,
+            3500800,
+            3700800,
+            3700850,
+            3700851,
+            3800830,
+            3900800,
+            4000800,
+            4000830,
+            4100800,
+            4500801,
+            4500802,
+            4500861,
+            5000801,
+            5000802,
+            5110800,
+            5110801
+        };
+
         public const string MOD_DIR = @"mod\";
 
         public const int GAEL_PHASE1_PARAM_ID = 620100;
@@ -36,5 +72,8 @@ namespace OopsAllGael
         public const int MY_GAEL_PHASE2_PARAM_ID = 650000;
 
         public const int GAEL_EVENT_ID = 30000000;
+        public const int GAEL_BOSS_EVENT = 30000001;
+
+        public const float GAEL_AGGRO_RANGE = 30.0f;
     }
 }

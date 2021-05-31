@@ -202,18 +202,30 @@ namespace OopsAllGael
             parameters.Sort((p1, p2) => (int) p1.TargetStartByte - (int) p2.TargetStartByte);
 
             int[] paramMap = Enumerable.Repeat(-1, argTypes.Length).ToArray();
-            for (int i = 0, j = 0, size = 0; i < argTypes.Length && j < parameters.Count; i++)
+            for (int i = 0, j = 0, packedSize = 0; i < argTypes.Length && j < parameters.Count; i++)
             {
-                if (parameters[j].TargetStartByte == size)
+                int size = ArgTypeToSize(argTypes[i]);
+                int remainder = packedSize % size;
+                packedSize += (size - remainder) % size;
+                if (parameters[j].TargetStartByte == packedSize)
                 {
                     paramMap[i] = (int)parameters[j].SourceStartByte / 4;
                     j++;
                 }
-                int bytes = ArgTypeToSize(argTypes[i]);
-                int remainder = size % bytes;
-                size += bytes - remainder;
+                packedSize += size;
             }
             return paramMap;
+        }
+
+        public static void ShiftParams(List<EMEVD.Parameter> parameters, int index, int offset)
+        {
+            foreach (EMEVD.Parameter param in parameters)
+            {
+                if (param.InstructionIndex >= index)
+                {
+                    param.InstructionIndex += offset;
+                }
+            }
         }
     }
 }

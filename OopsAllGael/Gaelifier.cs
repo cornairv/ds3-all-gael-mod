@@ -10,13 +10,12 @@ using OopsAllGael.EventEnum;
 
 namespace OopsAllGael
 {
-    class Gaelifier
+    partial class Gaelifier
     {
         
         static Dictionary<int, PARAM.Row> npc_params = new Dictionary<int, PARAM.Row>();  // npc param id => npc params
-        static HashSet<int> entityIds = new HashSet<int>();
-        static HashSet<uint> visitedEvents = new HashSet<uint>();
-        static HashSet<uint> visitedCommonEvents = new HashSet<uint>();
+        static HashSet<int> gaelEntityIds = new HashSet<int>();
+        static HashSet<int> allEntityIds = new HashSet<int>();
         static Dictionary<string, List<int>> enemyEntityIdMap = new Dictionary<string, List<int>>();
 
         public static void Gaelify()
@@ -69,7 +68,8 @@ namespace OopsAllGael
                 TeamType.Enemy2,
                 TeamType.StrongEnemy1,
                 TeamType.HostileNpc,
-                TeamType.Indiscriminate
+                TeamType.Indiscriminate,
+                TeamType.ArchEnemyTeam
             };
 
             // Extract Gael info
@@ -86,8 +86,10 @@ namespace OopsAllGael
 
                 foreach (MSB3.Part.Enemy enemy in msb.Parts.Enemies)
                 {
+                    allEntityIds.Add(enemy.EntityID);
                     TeamType team = (TeamType)Util.GetCellValue<byte>(npc_params[enemy.NPCParamID], "subTeamType");
-                    if (enemy.EntityID == -1)// || Array.FindIndex(enemy_types_to_replace, t => t == team) == -1)
+                    //Console.WriteLine(team + ": " + enemy.Name + ", " + enemy.EntityID);
+                    if (enemy.EntityID == -1 || Array.FindIndex(enemy_types_to_replace, t => t == team) == -1)
                     {
                         continue;
                     }
@@ -105,15 +107,15 @@ namespace OopsAllGael
                     new_gael.ThinkParamID = 620000;
                     new_gaels.Add(new_gael);
 
-                    if (entityIds.Contains(enemy.EntityID))
+                    if (gaelEntityIds.Contains(enemy.EntityID))
                     {
                         Console.WriteLine("Warning: duplicate entity ID: " + enemy.EntityID + ", " + team);
                     }
-                    else if (entityIds.Contains(enemy.EntityID * 10))
+                    else if (gaelEntityIds.Contains(enemy.EntityID * 10))
                     {
                         Console.WriteLine("Warning: gael2 entity ID collision: " + enemy.EntityID);
                     }
-                    entityIds.Add(enemy.EntityID);
+                    gaelEntityIds.Add(enemy.EntityID);
                     if (!enemyEntityIdMap.ContainsKey(mapId))
                     {
                         enemyEntityIdMap[mapId] = new List<int>();
@@ -134,35 +136,56 @@ namespace OopsAllGael
                 .Event(Constants.GAEL_EVENT_ID, EMEVD.Event.RestBehaviorType.Restart)
                 .Param(gael_phase1).Param(gael_phase2)
 
+
                 // disable first Gael if second is dead
                 .IfCharacterDeadAlive(ConditionGroup.Or01, gael_phase2, DeathState.Dead, ComparisonType.Equal, 1)
                 .GotoIfConditionGroupStateUncompiled(Label.Label0, ConditionState.Fail, ConditionGroup.Or01)
                 .ChangeCharacterEnableState(gael_phase1, DisabledEnabled.Disabled)
+                .ActivateHit(gael_phase1, DisabledEnabled.Disabled)
                 .EndUnconditionally(EventEndType.End)
 
                 // disable second gael until first is dead
                 .Label0()
                 .ChangeCharacterEnableState(gael_phase2, DisabledEnabled.Disabled)
+                .ActivateHit(gael_phase2, DisabledEnabled.Disabled)
                 .IfCharacterHpRatio(ConditionGroup.Main, gael_phase1, ComparisonType.Equal, 0, ComparisonType.Equal, 1)
                 .WarpCharacterAndCopyFloor(gael_phase2, TargetEntityType.Character, gael_phase1, 260, gael_phase1)
                 .WaitFixedTimeSeconds(5)
                 .ChangeCharacterEnableState(gael_phase2, DisabledEnabled.Enabled)
                 .ForceAnimationPlayback(gael_phase2, 3036, false, true, false, 0, 1)
+                .ActivateHit(gael_phase2, DisabledEnabled.Enabled)
+                .Build();
+
+            emevd.Events.Add(newEvent);
+
+            gael_phase1 = new EventArg<int>();
+            gael_phase2 = new EventArg<int>();
+            EventArg<short> slotNumber = new EventArg<short>();
+            EventArg<int> nameId = new EventArg<int>();
+            newEvent = new EventBuilder()
+                .Event(Constants.GAEL_BOSS_EVENT, EMEVD.Event.RestBehaviorType.Restart)
+                .Param(gael_phase1).Param(gael_phase2).Param(slotNumber).Param(nameId)
+                .IfCharacterHpRatio(ConditionGroup.Main, gael_phase1, ComparisonType.Equal, 0.0f, ComparisonType.Equal, 1)
+                .DisplayBossHealthBar(DisabledEnabled.Disabled, gael_phase1, slotNumber, nameId)
+                .DisplayBossHealthBar(DisabledEnabled.Enabled, gael_phase2, slotNumber, nameId)
                 .Build();
 
             emevd.Events.Add(newEvent);
         }
 
+        
         static void ModifyEvents()
         {
             string commonFilename = @"event\common_func.emevd.dcx";
             EMEVD commonEmevd = EMEVD.Read(commonFilename);
             List<EMEVD.Event> commonEvents = new List<EMEVD.Event>(commonEmevd.Events);
+            HashSet<uint> visitedEvents = new HashSet<uint>();
+
             foreach (string mapId in Constants.MAP_IDS)
             {
                 string filename = @"event\" + mapId + ".emevd.dcx";
                 EMEVD emevd = EMEVD.Read(filename);
-                Console.WriteLine(filename);
+                Console.WriteLine(mapId);
 
                 List<EMEVD.Event> events = new List<EMEVD.Event>(emevd.Events);
 
@@ -174,141 +197,106 @@ namespace OopsAllGael
                 EMEVD.Event resetEvent = events[i];
                 events.RemoveAt(i);
 
-                visitedEvents.Clear();
 
                 EventBuilder startEventBuilder = new EventBuilder()
-                    .Event(startEvent)
-                    .ForEach(EventModifier(events, commonEvents));
+                    .Event(startEvent, 0)
+                    .ForEach(EventModifier(events, commonEvents, visitedEvents));
 
                 foreach (int entityId in enemyEntityIdMap[mapId])
                 {
                     startEventBuilder.InitializeCommonEvent(Constants.GAEL_EVENT_ID, null, (uint)entityId, (uint)entityId * 10);
                 }
 
-                new EventBuilder()
-                    .Event(resetEvent)
-                    .ForEach(EventModifier(events, commonEvents));
-
-                /* Only unreachable events should be left over so don't do anything with them
-                foreach (EMEVD.Event event_ in events)
+                // additional start events
+                if (mapId == "m40_00_00_00")
                 {
-                    EventBuilder eventBuilder = new EventBuilder()
-                        .Event(event_);
-                    eventBuilder.ForEach(InstrModifier(eventBuilder, new Dictionary<int, object>()));
+                    // enable iudyx gundyr
+                    //startEventBuilder.SetEventFlag(14000801, OnOff.On);
+                    //startEventBuilder.SetEventFlag(14000802, OnOff.On);
+                    //startEventBuilder.SetEventFlag(14000802, OnOff.On);
                 }
-                */
 
+                new EventBuilder()
+                    .Event(resetEvent, 0)
+                    .ForEach(EventModifier(events, commonEvents, visitedEvents));
+
+                for (int j = 0; j < bossGaels.Count; j++)
+                {
+                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_BOSS_EVENT, null, (uint)bossGaels[i], (uint)bossGaelHpBarSlots[i], (uint)bossGaelNameIds[i]);
+                }
+                bossGaels.Clear();
+                bossGaelHpBarSlots.Clear();
+                bossGaelNameIds.Clear();
                 emevd.Write(Constants.MOD_DIR + filename);
             }
-            /*
-            foreach (EMEVD.Event event_ in commonEvents)
-            {
-                EventBuilder eventBuilder = new EventBuilder()
-                    .Event(event_);
-                eventBuilder.ForEach(InstrModifier(eventBuilder, new Dictionary<int, object>()));
-            }
-            */
             InsertCommonEvents(commonEmevd);
             commonEmevd.Write(Constants.MOD_DIR + commonFilename);
         }
 
-        static Predicate<MyInstr> EventModifier(List<EMEVD.Event> events, List<EMEVD.Event> commonEvents)
-        {
-            return delegate (MyInstr myInstr)
-            {
-                EventArg<uint> eventId = null;
-                EventArg<uint>[] parameters = null;
-                EMEVD.Event match = null;
-                if (myInstr is InstrWrapper.InitializeEvent instr)
-                {
-                    eventId = instr.eventId;
-                    parameters = instr.parameters;
-                    int i = events.FindIndex(ev => ev.ID == eventId.Value);
-                    if (i != -1)
-                    {
-                        match = events[i];
-                        events.RemoveAt(i);
-                        visitedEvents.Add(instr.eventId.Value);
-                    }
-                    else if (!visitedEvents.Contains(eventId.Value))
-                    {
-                        Console.WriteLine("Warning: event ID " + eventId.Value + " not found");
-                    }
-                }
-                else if (myInstr is InstrWrapper.InitializeCommonEvent instr2)
-                {
-                    eventId = instr2.eventId;
-                    parameters = instr2.parameters;
-                    int i = commonEvents.FindIndex(ev => ev.ID == eventId.Value);
-                    if (i != -1)
-                    {
-                        match = commonEvents[i];
-                        commonEvents.RemoveAt(i);
-                        visitedCommonEvents.Add(instr2.eventId.Value);
-                    }
-                    else if (!visitedCommonEvents.Contains(eventId.Value))
-                    {
-                        Console.WriteLine("Warning: common event ID " + eventId.Value + " not found");
-                    }
-                }
-
-                if (match != null)
-                {
-                    EventBuilder eventBuilder = new EventBuilder()
-                        .Event(match);
-
-                    Dictionary<int, object> paramMap = new Dictionary<int, object>();
-                    for (int i = 0; i < parameters.Length; i++)
-                    {
-                        paramMap[i] = parameters[i].Value;
-                    }
-                    eventBuilder.ForEach(InstrModifier(eventBuilder, paramMap));
-                }
-                return false;
-            };
-        }
-
-        static Predicate<MyInstr> InstrModifier(EventBuilder eventBuilder, Dictionary<int, object> paramMap)
+        // Modify events referenced by InitializeEvent/InitializeCommonEvent instructions
+        static Predicate<MyInstr> EventModifier(List<EMEVD.Event> events, List<EMEVD.Event> commonEvents, HashSet<uint> visitedEvents)
         {
             return delegate (MyInstr myInstr)
             {
                 bool ret = false;
-                if (myInstr is InstrWrapper.ForceAnimationPlayback instr)
+                if (myInstr is InstrWrapper.AbstractInitializeEvent instr)
                 {
-                    if (IsGael(paramMap, 0, instr.entityId))
+                    EventArg<uint> eventId = instr.eventId;
+                    List<EventArg<uint>> parameters = new List<EventArg<uint>>(instr.parameters);
+                    EMEVD.Event match = (instr is InstrWrapper.InitializeEvent ? events : commonEvents).Find(ev => ev.ID == eventId.Value);
+                    if (match == null)
                     {
-                        // looping animations are often used to "disable" enemies so replace with disabling AI
-                        if (instr.shouldLoop.isParam ? Convert.ToBoolean(paramMap[2]) : instr.shouldLoop.Value)
+                        Console.WriteLine("Warning: event ID " + eventId.Value + " not found");
+                        return false;
+                    }
+                    
+
+                    EventBuilder eventBuilder = new EventBuilder()
+                        .Event(match, instr.parameters.Length);
+
+                    if (!visitedEvents.Contains(eventId.Value))
+                    {
+                        if (PreprocessEvent(eventBuilder, (int)eventId.Value))
                         {
-                            eventBuilder.Remove();
-                            eventBuilder.SetCharacterAiState(instr.entityId, DisabledEnabled.Disabled);
+                            visitedEvents.Add(eventId.Value);
+                            return false;
                         }
-                        else
+                        eventBuilder.Seek(0);
+                    }
+
+                    Dictionary<int, object> paramMap = new Dictionary<int, object>();
+                    Dictionary<int, EventArg<int>> gaelMap = new Dictionary<int, EventArg<int>>();
+                    for (int i = 0; i < parameters.Count; i++)
+                    {
+                        paramMap[i] = parameters[i].Value;
+                        if (IsGael(null, (int)parameters[i].Value))
                         {
-                            eventBuilder.Remove();
-                            eventBuilder.SetCharacterAiState(instr.entityId, DisabledEnabled.Enabled);
+                            EventArg<int> newGaelParam = new EventArg<int>();
+                            eventBuilder.Param(newGaelParam);
+                            gaelMap[i] = newGaelParam;
+                            instr.AddParam(parameters[i].Value * 10);
+                            ret = true;
+                        }
+                        else if (IsEntity(null, (int)parameters[i].Value))
+                        {
+                            EventArg<int> newGaelParam = new EventArg<int>();
+                            eventBuilder.Param(newGaelParam);
+                            instr.AddParam(parameters[i].Value);
+                            ret = true;
                         }
                     }
-                }
-                else if (myInstr is InstrWrapper.IfCharacterHpRatio instr2)
-                {
-                    if (IsGael(paramMap, 1, instr2.targetEntityId))
+                    if (!visitedEvents.Contains(eventId.Value))
                     {
-                        eventBuilder.Noop();
+                        //Console.WriteLine("Warning: skipped event ID " + eventId.Value);
+                        eventBuilder.ForEach(InstrModifier(eventBuilder, paramMap, gaelMap));
+                        visitedEvents.Add(eventId.Value);
+                        PostprocessEvent(eventBuilder, (int) eventId.Value);
                     }
-                    if (paramMap.ContainsKey(3))
-                    {
-                        Console.WriteLine("HP param");
-                    }
+
                 }
+
                 return ret;
             };
-        }
-
-
-        static bool IsGael(Dictionary<int, object> paramMap, int argPos, EventArg<int> entityId)
-        {
-            return entityId.isParam ? entityIds.Contains(Convert.ToInt32(paramMap[argPos])) : entityIds.Contains(entityId.Value);
         }
 
         static void InsertSfx()

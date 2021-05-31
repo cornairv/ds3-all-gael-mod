@@ -30,10 +30,10 @@ namespace OopsAllGael
             return this;
         }
 
-        public EventBuilder Event(EMEVD.Event event_)
+        public EventBuilder Event(EMEVD.Event event_, int paramCount)
         {
             this.event_ = event_;
-            paramCount = event_.Parameters.Count;
+            this.paramCount = paramCount;
             return this;
         }
 
@@ -55,7 +55,6 @@ namespace OopsAllGael
         {
             Remove();
             SkipUnconditionally(0);
-            Skip(-1);
             return this;
         }
 
@@ -105,7 +104,7 @@ namespace OopsAllGael
             }
             instr = event_.Instructions[cursor];
             event_.Parameters.RemoveAll(param => param.InstructionIndex == cursor);
-            ShiftParams(cursor, -1);
+            Util.ShiftParams(event_.Parameters, cursor, -1);
             event_.Instructions.RemoveAt(cursor);
             if (cursor > event_.Instructions.Count)
             {
@@ -118,7 +117,7 @@ namespace OopsAllGael
         {
             event_.Instructions.Insert(cursor, instr);
             cursor++;
-            ShiftParams(cursor, 1);
+
         }
 
         /*
@@ -155,7 +154,10 @@ namespace OopsAllGael
                     Remove();
                     Insert(myInstr.ToInstr(cursor, event_.Parameters, paramCount));
                 }
-                Skip(1);
+                else
+                {
+                    Skip(1);
+                }
             }
             return this;
         }
@@ -177,16 +179,7 @@ namespace OopsAllGael
             return arg.ToObject(argType);
         }
 
-        void ShiftParams(int index, int offset)
-        {
-            foreach (EMEVD.Parameter param in event_.Parameters)
-            {
-                if (param.InstructionIndex > index)
-                {
-                    param.InstructionIndex += offset;
-                }
-            }
-        }
+        
 
         /*
 
@@ -251,6 +244,7 @@ namespace OopsAllGael
         public abstract AbstractEventArg[] gatherArgs();
         public EMEVD.Instruction ToInstr(int index, List<EMEVD.Parameter> parameters, int paramCount = -1)
         {
+            Util.ShiftParams(parameters, index, 1);
             AbstractEventArg[] args = gatherArgs();
             int packedSize = 0;
             List<object> objects = new List<object>();
