@@ -19,15 +19,15 @@ namespace OopsAllGael
                         List<EMEVD.Instruction.ArgType> argTypes_ = InstrWrapper.InitializeCommonEvent.argTypes.ToList();
                         for (int i = 1; i < instr.ArgData.Length / 4; i++)
                         {
-                            argTypes_.Add(EMEVD.Instruction.ArgType.UInt32);
+                            argTypes_.Add(EMEVD.Instruction.ArgType.Int32);
                         }
                         List<object> args = instr.UnpackArgs(argTypes_);
                         int[] p = Util.UnpackParams(parameters, index, argTypes_.ToArray());
                         AbstractEventArg[] eventArgs = new AbstractEventArg[argTypes_.Count];
-                        eventArgs[0] = p[0] == -1 ? (uint)args[0] : new EventArg<uint> { index = p[0] };
+                        eventArgs[0] = p[0] == -1 ? (int)args[0] : new EventArg<int> { index = p[0] };
                         for (int i = 1; i < instr.ArgData.Length / 4; i++)
                         {
-                            eventArgs[i] = p[i] == -1 ? (uint)args[i] : new EventArg<uint> { index = p[i] };
+                            eventArgs[i] = p[i] == -1 ? (int)args[i] : new EventArg<int> { index = p[i] };
                         }
                         return new InstrWrapper.InitializeCommonEvent(eventArgs, instr.Layer);
                     }
@@ -36,16 +36,16 @@ namespace OopsAllGael
                         List<EMEVD.Instruction.ArgType> argTypes_ = InstrWrapper.InitializeEvent.argTypes.ToList();
                         for (int i = 2; i < instr.ArgData.Length / 4; i++)
                         {
-                            argTypes_.Add(EMEVD.Instruction.ArgType.UInt32);
+                            argTypes_.Add(EMEVD.Instruction.ArgType.Int32);
                         }
                         List<object> args = instr.UnpackArgs(argTypes_);
                         int[] p = Util.UnpackParams(parameters, index, argTypes_.ToArray());
                         AbstractEventArg[] eventArgs = new AbstractEventArg[argTypes_.Count];
                         eventArgs[0] = p[0] == -1 ? (int)args[0] : new EventArg<int> { index = p[0] };
-                        eventArgs[1] = p[1] == -1 ? (uint)args[1] : new EventArg<uint> { index = p[1] };
+                        eventArgs[1] = p[1] == -1 ? (int)args[1] : new EventArg<int> { index = p[1] };
                         for (int i = 2; i < instr.ArgData.Length / 4; i++)
                         {
-                            eventArgs[i] = p[i] == -1 ? (uint)args[i] : new EventArg<uint> { index = p[i] };
+                            eventArgs[i] = p[i] == -1 ? (int)args[i] : new EventArg<int> { index = p[i] };
                         }
                         return new InstrWrapper.InitializeEvent(eventArgs, instr.Layer);
                     }
@@ -3505,47 +3505,47 @@ namespace OopsAllGael
     {
         abstract class AbstractInitializeEvent : MyInstr
         {
-            public EventArg<uint> eventId;
-            public EventArg<uint>[] parameters;
+            public EventArg<int> eventId;
+            public EventArg<int>[] parameters;
             protected AbstractInitializeEvent(InstrType instrType, uint? layerMask) : base(instrType, layerMask)
             {
             }
-            public void AddParam(EventArg<uint> p)
+            public void AddParam(EventArg<int> p)
             {
-                parameters = parameters.Concat(new EventArg<uint>[] { p }).ToArray();
-                _argTypes = _argTypes.Concat(new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.UInt32 }).ToArray();
+                parameters = parameters.Concat(new EventArg<int>[] { p }).ToArray();
+                _argTypes = _argTypes.Concat(new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Int32 }).ToArray();
             }
         }
         class InitializeEvent : AbstractInitializeEvent
         {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.UInt32 };
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
             public EventArg<int> eventSlotId;
             public InitializeEvent(AbstractEventArg[] args, uint? layerMask) : base(InstrType.InitializeEvent, layerMask)
             {
-                _argTypes = Enumerable.Repeat(EMEVD.Instruction.ArgType.UInt32, args.Length).ToArray();
+                _argTypes = Enumerable.Repeat(EMEVD.Instruction.ArgType.Int32, args.Length).ToArray();
                 argTypes.CopyTo(_argTypes, 0);
                 eventSlotId = (EventArg<int>)args[0];
-                eventId = (EventArg<uint>)args[1];
-                parameters = new EventArg<uint>[args.Length - 2];
+                eventId = (EventArg<int>)args[1];
+                parameters = new EventArg<int>[args.Length - 2];
                 for (int i = 0; i < args.Length - 2; i++)
                 {
-                    parameters[i] = (EventArg<uint>)args[i + 2];
+                    parameters[i] = (EventArg<int>)args[i + 2];
                 }
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { eventSlotId, eventId }.Concat(parameters).ToArray(); }
         }
         class InitializeCommonEvent : AbstractInitializeEvent
         {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.UInt32 };
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Int32 };
             public InitializeCommonEvent(AbstractEventArg[] args, uint? layerMask) : base(InstrType.InitializeCommonEvent, layerMask)
             {
-                _argTypes = Enumerable.Repeat(EMEVD.Instruction.ArgType.UInt32, args.Length).ToArray();
+                _argTypes = Enumerable.Repeat(EMEVD.Instruction.ArgType.Int32, args.Length).ToArray();
                 argTypes.CopyTo(_argTypes, 0);
-                eventId = (EventArg<uint>)args[0];
-                parameters = new EventArg<uint>[args.Length - 1];
+                eventId = (EventArg<int>)args[0];
+                parameters = new EventArg<int>[args.Length - 1];
                 for (int i = 0; i < args.Length - 1; i++)
                 {
-                    parameters[i] = (EventArg<uint>)args[i + 1];
+                    parameters[i] = (EventArg<int>)args[i + 1];
                 }
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { eventId }.Concat(parameters).ToArray(); }
@@ -8763,6 +8763,26 @@ namespace OopsAllGael
     ////////// Instruction functions (generated from DarkScript3's json) //////////
     partial class EventBuilder
     {
+        public EventBuilder InitializeEvent(
+            EventArg<int> eventSlotId,
+            EventArg<int> eventId,
+            uint? layerMask,
+            params EventArg<int>[] parameters)
+        {
+            AbstractEventArg[] args = new AbstractEventArg[] { eventSlotId, eventId }.Concat(parameters).ToArray();
+            Insert(new InstrWrapper.InitializeEvent(args, layerMask).ToInstr(cursor, event_.Parameters, paramCount));
+            return this;
+        }
+        public EventBuilder InitializeCommonEvent(
+           EventArg<int> eventId,
+           uint? layerMask,
+           params EventArg<int>[] parameters)
+        {
+            AbstractEventArg[] args = new AbstractEventArg[] { eventId }.Concat(parameters).ToArray();
+            Insert(new InstrWrapper.InitializeCommonEvent(args, layerMask).ToInstr(cursor, event_.Parameters, paramCount));
+            return this;
+        }
+
         public EventBuilder IfConditionGroup(
             EventArg<EventEnum.ConditionGroup> resultConditionGroup,
             EventArg<EventEnum.ConditionState> desiredConditionGroupState,
@@ -10192,16 +10212,6 @@ namespace OopsAllGael
             Insert(new InstrWrapper.Label20(args, layerMask).ToInstr(cursor, event_.Parameters, paramCount));
             return this;
         }
-        public EventBuilder InitializeEvent(
-            EventArg<int> eventSlotId,
-            EventArg<uint> eventId,
-            uint? layerMask,
-            params EventArg<uint>[] parameters)
-        {
-            AbstractEventArg[] args = new AbstractEventArg[] { eventSlotId, eventId }.Concat(parameters).ToArray();
-            Insert(new InstrWrapper.InitializeEvent(args, layerMask).ToInstr(cursor, event_.Parameters, paramCount));
-            return this;
-        }
         public EventBuilder TerminateEvent(
             EventArg<int> eventSlotId,
             EventArg<uint> eventId,
@@ -10241,15 +10251,6 @@ namespace OopsAllGael
         {
             AbstractEventArg[] args = new AbstractEventArg[] { dummy };
             Insert(new InstrWrapper.SaveRequest(args, layerMask).ToInstr(cursor, event_.Parameters, paramCount));
-            return this;
-        }
-        public EventBuilder InitializeCommonEvent(
-            EventArg<uint> eventId,
-            uint? layerMask,
-            params EventArg<uint>[] parameters)
-        {
-            AbstractEventArg[] args = new AbstractEventArg[] { eventId }.Concat(parameters).ToArray();
-            Insert(new InstrWrapper.InitializeCommonEvent(args, layerMask).ToInstr(cursor, event_.Parameters, paramCount));
             return this;
         }
         public EventBuilder PlayCutsceneToAll(

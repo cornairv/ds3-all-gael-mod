@@ -74,7 +74,7 @@ namespace OopsAllGael
                         if (instr2.targetHpRatio.isParam)
                         {
                             Console.Write(GetParamValue(paramMap, instr2.targetHpRatio) + " -> ");
-                            Console.WriteLine(BitConverter.ToSingle(BitConverter.GetBytes((uint)GetParamValue(paramMap, instr2.targetHpRatio)), 0));
+                            Console.WriteLine(BitConverter.ToSingle(BitConverter.GetBytes((int)GetParamValue(paramMap, instr2.targetHpRatio)), 0));
                         }
                         else
                         {
@@ -141,7 +141,6 @@ namespace OopsAllGael
                     {
                         instr4.targetEntityId = GetGael2(gaelMap, instr4.targetEntityId);
                         saveModification = true;
-
                     }
                 }
                 else if (myInstr is InstrWrapper.IfCharacterAiState instr7)
@@ -165,9 +164,12 @@ namespace OopsAllGael
                 {
                     if (IsGael(paramMap, instr8.targetEntityId))
                     {
-                        eventBuilder.Remove();
-                        eventBuilder.IfParameterComparison(instr8.resultConditionGroup, ComparisonType.Equal, 0, 0, instr8.layerMask);
-                        eventBuilder.Skip(-1);
+                        if ((int)GetParamValue(paramMap, instr8.targetEntityId) == 4000800) // iudyx gundyr
+                        {
+                            eventBuilder.Remove();
+                            eventBuilder.IfParameterComparison(instr8.resultConditionGroup, ComparisonType.Equal, 0, 0, instr8.layerMask);
+                            eventBuilder.Skip(-1);
+                        }
                     }
                 }
                 else if (myInstr is InstrWrapper.ChangeCharacterDispmask instr9)
@@ -182,17 +184,43 @@ namespace OopsAllGael
                 {
                     if (IsGael(paramMap, instr10.entityId))
                     {
-                        if ((DisabledEnabled)Convert.ToInt32(GetParamValue(paramMap, instr10.disabledEnabled)) == DisabledEnabled.Enabled)
+                        if ((DisabledEnabled)GetParamValue(paramMap, instr10.disabledEnabled) == DisabledEnabled.Enabled)
                         {
-                            bossGaels.Add(Convert.ToInt32(GetParamValue(paramMap, instr10.entityId)));
-                            bossGaelHpBarSlots.Add(Convert.ToInt16(GetParamValue(paramMap, instr10.slotNumber)));
-                            bossGaelNameIds.Add(Convert.ToInt32(GetParamValue(paramMap, instr10.nameId)));
+                            bossGaels.Add((int)GetParamValue(paramMap, instr10.entityId));
+                            bossGaelHpBarSlots.Add((short)GetParamValue(paramMap, instr10.slotNumber));
+                            bossGaelNameIds.Add((int)GetParamValue(paramMap, instr10.nameId));
                         }
                     }
                     else
                     {
                         Console.WriteLine("Warning: non-Gael boss hp bar");
                     }
+                }
+                else if (myInstr is InstrWrapper.ForceCharacterDeath instr11)
+                {
+                    if (IsGael(paramMap, instr11.entityId))
+                    {
+                        eventBuilder.Skip(1);
+                        eventBuilder.ForceCharacterDeath(GetGael2(gaelMap, instr11.entityId), instr11.shouldReceiveSouls, instr11.layerMask);
+                        eventBuilder.Skip(-1);
+                    }
+                }
+                else if (myInstr is InstrWrapper.ChangeCharacterEnableState instr12)
+                {
+                    /*
+                    if (IsGael(paramMap, instr12.entityId))
+                    {
+                        if (!instr12.disabledEnabled.isParam)
+                        {
+                            if (instr12.disabledEnabled.Value == DisabledEnabled.Disabled)
+                            {
+                                eventBuilder.Skip(1);
+                                eventBuilder.ChangeCharacterEnableState(GetGael2(gaelMap, instr12.entityId), DisabledEnabled.Disabled);
+                                eventBuilder.Skip(-1);
+                            }
+                        }
+                    }
+                    */
                 }
                 return saveModification;
             };
