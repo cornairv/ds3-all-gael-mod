@@ -10,9 +10,8 @@ namespace OopsAllGael
 
     partial class EventBuilder
     {
-        EMEVD.Event event_;
+        public EMEVD.Event event_;
 
-        List<int> paramIds = new List<int>();
         int cursor = 0;
         int paramCount = 0;
 
@@ -159,6 +158,15 @@ namespace OopsAllGael
                     Skip(1);
                 }
             }
+            return this;
+        }
+
+        public EventBuilder Modify(Action<MyInstr> act)
+        {
+            MyInstr myInstr = MyInstr.FromInstr(CurrentInstruction, cursor, event_.Parameters);
+            act(myInstr);
+            Remove();
+            Insert(myInstr.ToInstr(cursor, event_.Parameters, paramCount));
             return this;
         }
 

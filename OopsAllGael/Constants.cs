@@ -73,7 +73,7 @@ namespace OopsAllGael
 
         public const int GAEL_EVENT_ID = 30000000;
         public const int GAEL_BOSS_EVENT = 30000001;
-        public const int GAEL_NPC_EVENT = 30000002;
+        public const int GAEL_AGGRO_EVENT = 30000002;
 
         public const float GAEL_AGGRO_RANGE = 20.0f;
     }

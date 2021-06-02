@@ -14,10 +14,7 @@ namespace OopsAllGael
     {
 
         static Dictionary<int, PARAM.Row> npc_params = new Dictionary<int, PARAM.Row>();  // npc param id => npc params
-        static HashSet<int> gaelEntityIds = new HashSet<int>(); // gael phase 1 id => gael phase 2 id
-        static HashSet<int> friendlyEntityIds = new HashSet<int>();
-        static HashSet<int> allEntityIds = new HashSet<int>();
-        static Dictionary<string, List<int>> enemyEntityIdMap = new Dictionary<string, List<int>>(); // map id => gael ids
+
 
         public static void Gaelify()
         {
@@ -56,84 +53,6 @@ namespace OopsAllGael
             }
         }
 
-        static void InsertEnemies()
-        {
-            // Extract Gael info
-            MSB3 gael_msb = MSB3.Read(@"map\mapstudio\m51_01_00_00.msb.dcx");
-            List<MSB3.Model.Enemy> gael_models = gael_msb.Models.Enemies.FindAll(model => model.Name == "c6201" || model.Name == "c6200");
-            int newEnemyIdCounter = 100000000;
-            // Make every enemy Gael
-            foreach (string mapId in Constants.MAP_IDS)
-            {
-                string msbFilename = @"map\mapstudio\" + mapId + ".msb.dcx";
-                MSB3 msb = MSB3.Read(msbFilename);
-                msb.Models.Enemies.AddRange(gael_models);
-                List<MSB3.Part.Enemy> new_gaels = new List<MSB3.Part.Enemy>();
-
-                for (int i = 0; i < msb.Parts.Enemies.Count; i++)
-                {
-                    MSB3.Part.Enemy enemy = msb.Parts.Enemies[i];
-                    allEntityIds.Add(enemy.EntityID);
-                    TeamType team = (TeamType)Util.GetCellValue<byte>(npc_params[enemy.NPCParamID], "subTeamType");
-                    if (enemy.ThinkParamID == 0 || team == TeamType.Object)// || Array.FindIndex(enemy_types_to_replace, t => t == team) == -1)
-                    {
-                        continue;
-                    }
-                    if (enemy.EntityID == -1)
-                    {
-                        enemy.EntityID = newEnemyIdCounter++;
-                    }
-
-                    bool isFriendly = team == TeamType.Ally || team == TeamType.CoOp || team == TeamType.CoOpNpc || team == TeamType.WhitePhantom || team == TeamType.Human || team == TeamType.FriendlyEnemy;
-                    TeamType newTeam = isFriendly ? team : TeamType.StrongEnemy;
-                    if (isFriendly)
-                    {
-                        friendlyEntityIds.Add(enemy.EntityID);
-                    }
-
-                    enemy.ModelName = "c6201";
-                    enemy.NPCParamID = Constants.MY_GAEL_PHASE1_PARAM_ID + (int)newTeam;
-                    enemy.CharaInitID = -1;
-                    if (!isFriendly)
-                    {
-                        enemy.ThinkParamID = 620100;
-                    }
-
-                    // add a phase 2 Gael
-                    MSB3.Part.Enemy new_gael = Util.CopyEnemy(enemy);
-                    new_gael.EntityID = enemy.EntityID * 10;
-                    new_gael.ModelName = "c6200";
-                    new_gael.NPCParamID = Constants.MY_GAEL_PHASE2_PARAM_ID + (int)newTeam;
-                    new_gael.Name = enemy.Name + " (2)";
-                    if (!isFriendly)
-                    {
-                        new_gael.ThinkParamID = 620000;
-                    }
-                    new_gaels.Add(new_gael);
-
-                    if (gaelEntityIds.Contains(enemy.EntityID))
-                    {
-                        Console.WriteLine("Warning: duplicate entity ID: " + enemy.EntityID + ", " + team);
-                    }
-                    else if (gaelEntityIds.Contains(enemy.EntityID * 10))
-                    {
-                        Console.WriteLine("Warning: gael2 entity ID collision: " + enemy.EntityID);
-                    }
-                    gaelEntityIds.Add(enemy.EntityID);
-                    if (!enemyEntityIdMap.ContainsKey(mapId))
-                    {
-                        enemyEntityIdMap[mapId] = new List<int>();
-                    }
-                    enemyEntityIdMap[mapId].Add(enemy.EntityID);
-                }
-
-                //foreach (MSB3.Event)
-
-                msb.Parts.Enemies.AddRange(new_gaels);
-                msb.Write(Constants.MOD_DIR + msbFilename);
-            }
-        }
-
         static void InsertCommonEvents(EMEVD emevd)
         {
             EventArg<int> gael_phase1 = new EventArg<int>();
@@ -143,7 +62,7 @@ namespace OopsAllGael
                 .Param(gael_phase1).Param(gael_phase2)
 
                 // disable first Gael if second is dead
-                .WaitFixedTimeSeconds(10)
+                .WaitFixedTimeFrames(1)
                 .IfCharacterDeadAlive(ConditionGroup.Or01, gael_phase2, DeathState.Dead, ComparisonType.Equal, 1)
                 .GotoIfConditionGroupStateUncompiled(Label.Label0, ConditionState.Fail, ConditionGroup.Or01)
                 .ChangeCharacterEnableState(gael_phase1, DisabledEnabled.Disabled)
@@ -181,19 +100,15 @@ namespace OopsAllGael
 
             emevd.Events.Add(newEvent);
 
-            gael_phase2 = new EventArg<int>();
-            EventArg<int> npcId = new EventArg<int>();
+            gael_phase1 = new EventArg<int>();
             newEvent = new EventBuilder()
-                .Event(Constants.GAEL_NPC_EVENT, EMEVD.Event.RestBehaviorType.Restart)
-                .Param(gael_phase2).Param(npcId)
-                .ChangeCharacterEnableState(npcId, DisabledEnabled.Disabled)
-                .ActivateHit(npcId, DisabledEnabled.Disabled)
-                .ChangeCharacterDispmask(npcId, 0, OnOffChange.Off)
-                .IfCharacterHpRatio(ConditionGroup.Main, gael_phase2, ComparisonType.Equal, 0.0f, ComparisonType.Equal, 1)
-                .WarpCharacterAndCopyFloor(npcId, TargetEntityType.Character, gael_phase2, 260, gael_phase2)
-                .WaitFixedTimeFrames(1)
-                .ChangeCharacterEnableState(npcId, DisabledEnabled.Enabled)
-                .ForceCharacterDeath(npcId, true)
+                .Event(Constants.GAEL_AGGRO_EVENT, EMEVD.Event.RestBehaviorType.Restart)
+                .Param(gael_phase1)
+                .SetCharacterAiState(gael_phase1, DisabledEnabled.Disabled)
+                .IfCharacterHpRatio(ConditionGroup.Or01, gael_phase1, ComparisonType.Lessorequal, 0.99f, ComparisonType.Equal, 1)
+                .IfEntityInOutsideRadiusOfEntity(ConditionGroup.Or01, InsideOutsideState.Inside, 10000, gael_phase1, Constants.GAEL_AGGRO_RANGE, 1)
+                .IfConditionGroup(ConditionGroup.Main, ConditionState.Pass, ConditionGroup.Or01)
+                .SetCharacterAiState(gael_phase1, DisabledEnabled.Enabled)
                 .Build();
 
             emevd.Events.Add(newEvent);
@@ -223,23 +138,29 @@ namespace OopsAllGael
                 EMEVD.Event resetEvent = events[i];
                 events.RemoveAt(i);
 
+                HashSet<int> unvisitedEnemies = new HashSet<int>(enemyEntityIdMap[mapId]);
 
                 EventBuilder startEventBuilder = new EventBuilder()
                     .Event(startEvent, 0)
-                    .ForEach(EventModifier(events, commonEvents, visitedEvents));
+                    .ForEach(EventModifier(events, commonEvents, visitedEvents, unvisitedEnemies));
 
                 foreach (int entityId in enemyEntityIdMap[mapId])
                 {
-                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_EVENT_ID, null, entityId, entityId * 10);
+                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_EVENT_ID, null, entityId, gaelEntityIds[entityId]);
+                }
+
+                foreach (int entityId in enemiesThatNeedAggroRange[mapId].Concat(unvisitedEnemies))
+                {
+                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_AGGRO_EVENT, null, entityId);
                 }
 
                 new EventBuilder()
                     .Event(resetEvent, 0)
-                    .ForEach(EventModifier(events, commonEvents, visitedEvents));
+                    .ForEach(EventModifier(events, commonEvents, visitedEvents, new HashSet<int>()));
 
                 for (int j = 0; j < bossGaels.Count; j++)
                 {
-                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_BOSS_EVENT, null, bossGaels[i], bossGaels[i] * 10, bossGaelHpBarSlots[i], bossGaelNameIds[i]);
+                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_BOSS_EVENT, null, bossGaels[i], gaelEntityIds[bossGaels[i]], bossGaelHpBarSlots[i], bossGaelNameIds[i]);
                 }
                 bossGaels.Clear();
                 bossGaelHpBarSlots.Clear();
@@ -251,7 +172,7 @@ namespace OopsAllGael
         }
 
         // Modify events referenced by InitializeEvent/InitializeCommonEvent instructions
-        static Predicate<MyInstr> EventModifier(List<EMEVD.Event> events, List<EMEVD.Event> commonEvents, HashSet<int> visitedEvents)
+        static Predicate<MyInstr> EventModifier(List<EMEVD.Event> events, List<EMEVD.Event> commonEvents, HashSet<int> visitedEvents, HashSet<int> unvisitedEnemies)
         {
             return delegate (MyInstr myInstr)
             {
@@ -286,28 +207,23 @@ namespace OopsAllGael
                     for (int i = 0; i < parameters.Count; i++)
                     {
                         paramMap[i] = parameters[i].Value;
-                        if (IsGael(null, (int)parameters[i].Value))
+                        if (IsGael(null, parameters[i].Value))
                         {
+                            // Add another parameter with gael phase 2
                             EventArg<int> newGaelParam = new EventArg<int>();
                             eventBuilder.Param(newGaelParam);
                             gaelMap[i] = newGaelParam;
-                            instr.AddParam(parameters[i].Value * 10);
-                            ret = true;
-                        }
-                        else if (IsEntity(null, (int)parameters[i].Value))
-                        {
-                            EventArg<int> newGaelParam = new EventArg<int>();
-                            eventBuilder.Param(newGaelParam);
-                            instr.AddParam(parameters[i].Value);
+                            unvisitedEnemies.Remove(parameters[i].Value);
+                            instr.AddParam(gaelEntityIds[parameters[i].Value]);
                             ret = true;
                         }
                     }
                     if (!visitedEvents.Contains(eventId.Value))
                     {
                         //Console.WriteLine("Warning: skipped event ID " + eventId.Value);
-                        eventBuilder.ForEach(InstrModifier(eventBuilder, paramMap, gaelMap));
+                        eventBuilder.ForEach(InstrModifier(eventBuilder, paramMap, gaelMap, unvisitedEnemies));
                         visitedEvents.Add(eventId.Value);
-                        PostprocessEvent(eventBuilder, (int) eventId.Value);
+                        PostprocessEvent(eventBuilder, eventId.Value);
                     }
 
                 }

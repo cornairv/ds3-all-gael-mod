@@ -22,6 +22,14 @@ namespace OopsAllGael
                     .Noop()
                     .Noop();
             }
+            else if (eventId == 20006005) // kneel for level up
+            {
+                return true;
+            }
+            else if (eventId == 20006006) // level up
+            {
+                return true;
+            }
 
             return false;
         }
@@ -34,10 +42,23 @@ namespace OopsAllGael
         static bool aggressive = false;
 
         // Modify one instruction in an event, with paramMap mapping the argument positions to their values
-        static Predicate<MyInstr> InstrModifier(EventBuilder eventBuilder, Dictionary<int, object> paramMap, Dictionary<int, EventArg<int>> gaelMap)
+        // paramMap: location in event parameters => parameter value
+        // gaelMap: location in event parameters => gael phase 2 id
+        static Predicate<MyInstr> InstrModifier(EventBuilder eventBuilder, Dictionary<int, object> paramMap, Dictionary<int, EventArg<int>> gaelMap, HashSet<int> unvisitedEnemies)
         {
             return delegate (MyInstr myInstr)
             {
+                foreach (AbstractEventArg arg in myInstr.gatherArgs())
+                {
+                    if (arg is EventArg<int> intArg)
+                    {
+                        if (IsGael(paramMap, intArg))
+                        {
+                            unvisitedEnemies.Remove((int)GetParamValue(paramMap, intArg));
+                        }
+                    }
+                }
+                return false;
                 bool saveModification = false;
                 if (myInstr is InstrWrapper.ForceAnimationPlayback instr)
                 {
@@ -102,7 +123,7 @@ namespace OopsAllGael
                 }
                 else if (myInstr is InstrWrapper.IfCharacterHasSpeffect instr3)
                 {
-                    if (IsGael(paramMap, instr3.targetEntityId))
+                    if (false && IsGael(paramMap, instr3.targetEntityId))
                     {
                         if (instr3.shouldHave.isParam)
                         {
@@ -222,6 +243,36 @@ namespace OopsAllGael
                     }
                     */
                 }
+                else if (myInstr is InstrWrapper.RotateCharacter instr13)
+                {
+                    /*
+                    eventBuilder.Remove();
+                    eventBuilder.ActivateHit(instr13.entityId, DisabledEnabled.Disabled, instr13.layerMask);
+                    eventBuilder.ActivateHit(instr13.entityId2, DisabledEnabled.Disabled, instr13.layerMask);
+                    eventBuilder.RotateCharacter(instr13.entityId, instr13.entityId2, instr13.playAnimationId, true, instr13.layerMask);
+                    eventBuilder.ActivateHit(instr13.entityId, DisabledEnabled.Enabled, instr13.layerMask);
+                    eventBuilder.ActivateHit(instr13.entityId2, DisabledEnabled.Enabled, instr13.layerMask);
+                    eventBuilder.Skip(-1);
+                    */
+                    eventBuilder.Noop();
+                    eventBuilder.Skip(-1);
+                }
+                else if (myInstr is InstrWrapper.SetCharacterTeamType instr14)
+                {
+                    if (IsGael(paramMap, instr14.entityId))
+                    {
+                        if (!instr14.teamType.isParam)
+                        {
+                            TeamType team = (TeamType)GetParamValue(paramMap, instr14.teamType);
+                            if (team == TeamType.HostileNpc || team == TeamType.HostileAlly || team == TeamType.Hostile)
+                            {
+                                eventBuilder.Skip(1);
+                                eventBuilder.SetCharacterAiId(instr14.entityId, 620100);
+                                eventBuilder.Skip(-1);
+                            }
+                        }
+                    }
+                }
                 return saveModification;
             };
         }
@@ -233,7 +284,7 @@ namespace OopsAllGael
         static bool IsGael(Dictionary<int, object> paramMap, EventArg<int> entityId)
         {
             object paramValue = GetParamValue(paramMap, entityId);
-            return gaelEntityIds.Contains(Convert.ToInt32(paramValue));
+            return gaelEntityIds.ContainsKey(Convert.ToInt32(paramValue));
         }
 
         static bool IsEntity(Dictionary<int, object> paramMap, EventArg<int> entityId)
@@ -244,7 +295,7 @@ namespace OopsAllGael
 
         static EventArg<int> GetGael2(Dictionary<int, EventArg<int>> gaelMap, EventArg<int> entityId)
         {
-            return entityId.isParam ? gaelMap[(int)entityId.index] : entityId.Value * 10;
+            return entityId.isParam ? gaelMap[(int)entityId.index] : gaelEntityIds[entityId.Value];
         }
     }
 }
