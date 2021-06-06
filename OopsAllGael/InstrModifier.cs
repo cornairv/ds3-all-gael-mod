@@ -16,6 +16,7 @@ namespace OopsAllGael
 
         static bool PreprocessEvent(EventBuilder eventBuilder, int eventId)
         {
+#if false
             if (eventId == 14005811) // Iudyx Gundyr
             {
                 eventBuilder.Seek(13)
@@ -30,6 +31,7 @@ namespace OopsAllGael
             {
                 return true;
             }
+#endif
 
             return false;
         }
@@ -48,6 +50,8 @@ namespace OopsAllGael
         {
             return delegate (MyInstr myInstr)
             {
+                return false;
+#if false
                 foreach (AbstractEventArg arg in myInstr.gatherArgs())
                 {
                     if (arg is EventArg<int> intArg)
@@ -58,7 +62,6 @@ namespace OopsAllGael
                         }
                     }
                 }
-                return false;
                 bool saveModification = false;
                 if (myInstr is InstrWrapper.ForceAnimationPlayback instr)
                 {
@@ -123,7 +126,7 @@ namespace OopsAllGael
                 }
                 else if (myInstr is InstrWrapper.IfCharacterHasSpeffect instr3)
                 {
-                    if (false && IsGael(paramMap, instr3.targetEntityId))
+                    if (IsGael(paramMap, instr3.targetEntityId))
                     {
                         if (instr3.shouldHave.isParam)
                         {
@@ -274,6 +277,7 @@ namespace OopsAllGael
                     }
                 }
                 return saveModification;
+#endif
             };
         }
 

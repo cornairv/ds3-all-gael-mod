@@ -53,6 +53,9 @@
     <Compile Include="Events.cs" />
     <Compile Include="Gaelifier.cs" />
     <Compile Include="InstrModifier.cs" />
+    <Compile Include="Models.cs" />
+    <Compile Include="MyDebug.cs" />
+    <Compile Include="Params.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
@@ -79,7 +82,13 @@
     <Content Include="ACTIONBUTTON_PARAM_ST.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="CHARACTER_INIT_PARAM.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="NPC_PARAM_ST.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="NPC_THINK_PARAM_ST.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

@@ -227,5 +227,35 @@ namespace OopsAllGael
                 }
             }
         }
+
+        public static int ReplaceInByteArray(byte[] input, byte[] pattern, byte[] replacement)
+        {
+            if (pattern.Length != replacement.Length)
+            {
+                throw new ArgumentException();
+            }
+
+            int matchLength = 0;
+            int matchCount = 0;
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (input[i] == pattern[matchLength])
+                {
+                    matchLength++;
+                    if (matchLength == pattern.Length)
+                    {
+                        replacement.CopyTo(input, i - matchLength + 1);
+                        matchLength = 0;
+                        matchCount++;
+                    }
+                }
+                else
+                {
+                    i -= matchLength;
+                    matchLength = 0;
+                }
+            }
+            return matchCount;
+        }
     }
 }

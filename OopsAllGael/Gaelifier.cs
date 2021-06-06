@@ -18,16 +18,18 @@ namespace OopsAllGael
 
         public static void Gaelify()
         {
-            Directory.CreateDirectory(@"mod\event");
-            Directory.CreateDirectory(@"mod\script");
-            Directory.CreateDirectory(@"mod\map\mapstudio");
-            Directory.CreateDirectory(@"mod\sfx");
+            Directory.CreateDirectory(Constants.MOD_DIR + @"event");
+            Directory.CreateDirectory(Constants.MOD_DIR + @"script");
+            Directory.CreateDirectory(Constants.MOD_DIR + @"map\mapstudio");
+            Directory.CreateDirectory(Constants.MOD_DIR + @"sfx");
+            Directory.CreateDirectory(Constants.MOD_DIR + @"chr");
+            Directory.CreateDirectory(Constants.MOD_DIR + @"action\script");
 
             InsertParams();
-            InsertEnemies();
             ModifyEvents();
             InsertScripts();
             InsertSfx();
+            InsertModels();
         }
 
         static void InsertScripts()
@@ -149,10 +151,12 @@ namespace OopsAllGael
                     startEventBuilder.InitializeCommonEvent(Constants.GAEL_EVENT_ID, null, entityId, gaelEntityIds[entityId]);
                 }
 
+                /*
                 foreach (int entityId in enemiesThatNeedAggroRange[mapId].Concat(unvisitedEnemies))
                 {
                     startEventBuilder.InitializeCommonEvent(Constants.GAEL_AGGRO_EVENT, null, entityId);
                 }
+                */
 
                 new EventBuilder()
                     .Event(resetEvent, 0)
@@ -176,6 +180,7 @@ namespace OopsAllGael
         {
             return delegate (MyInstr myInstr)
             {
+                return false;
                 bool ret = false;
                 if (myInstr is InstrWrapper.AbstractInitializeEvent instr)
                 {
@@ -241,69 +246,6 @@ namespace OopsAllGael
             common_sfx_bnd.Write(Constants.MOD_DIR + filename);
         }
 
-        static void InsertParams()
-        {
-            string filename = "Data0.bdt";
-            BND4 bnd = SFUtil.DecryptDS3Regulation(filename);
-
-            // NPC params
-            {
-                BinderFile tmp_bndf = bnd.Files.Find(bndf => bndf.Name.EndsWith("NpcParam.param")) ?? throw new KeyNotFoundException();
-                PARAM param = PARAM.Read(tmp_bndf.Bytes);
-                string paramdefFile = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "NPC_PARAM_ST.xml");
-                PARAMDEF paramdef = PARAMDEF.XmlDeserialize(paramdefFile);
-                param.ApplyParamdef(paramdef);
-
-                // put params in a dictionary for later use
-                foreach (PARAM.Row row in param.Rows)
-                {
-                    npc_params[row.ID] = row;
-                }
-
-                PARAM.Row gaelPhase1Row = param.Rows.Find(row => row.ID == Constants.GAEL_PHASE1_PARAM_ID) ?? throw new KeyNotFoundException();
-                PARAM.Row gaelPhase2Row = param.Rows.Find(row => row.ID == Constants.GAEL_PHASE2_PARAM_ID) ?? throw new KeyNotFoundException();
-                foreach (TeamType teamType in Enum.GetValues(typeof(TeamType)))
-                {
-                    if (teamType == TeamType.Default) continue;
-                    // create a new entry for Gael phase 1 with modified parameters
-                    PARAM.Row new_row = Util.CopyRow(gaelPhase1Row, paramdef);
-                    new_row.ID = Constants.MY_GAEL_PHASE1_PARAM_ID + (int)teamType;
-                    new_row.Name = "gael1";
-                    Util.SetCellValue(new_row, "subTeamType", (byte)teamType);
-                    Util.InsertRow(param, new_row);
-
-                    // create a new entry for Gael phase 2 with modified parameters
-                    new_row = Util.CopyRow(gaelPhase2Row, paramdef);
-                    new_row.ID = Constants.MY_GAEL_PHASE2_PARAM_ID + (int)teamType;
-                    new_row.Name = "gael2";
-                    Util.ModifyCellValue(new_row, "Hp", (int value) => (int) Math.Ceiling(value * 0.65));
-                    Util.SetCellValue(new_row, "getSoul", 120000);
-                    Util.SetCellValue(new_row, "isSoulGetByBoss", true);
-                    Util.SetCellValue(new_row, "disableIntiliazeDead", false);
-                    Util.SetCellValue(new_row, "subTeamType", (byte)teamType);
-                    Util.InsertRow(param, new_row);
-                }
-
-                tmp_bndf.Bytes = param.Write();
-            }
-
-            {
-                // load action button params
-                BinderFile tmpBndf = bnd.Files.Find(bndf => bndf.Name.EndsWith("ActionButtonParam.param")) ?? throw new KeyNotFoundException();
-                PARAM param = PARAM.Read(tmpBndf.Bytes);
-                string paramdefFile = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "ACTIONBUTTON_PARAM_ST.xml");
-                PARAMDEF paramdef = PARAMDEF.XmlDeserialize(paramdefFile);
-                param.ApplyParamdef(paramdef);
-
-                PARAM.Row gundyrRow = param.Rows.Find(row => row.ID == 8900) ?? throw new KeyNotFoundException();
-                Util.SetCellValue(gundyrRow, "Radius", 8);
-
-                tmpBndf.Bytes = param.Write();
-            }
-
-
-
-            SFUtil.EncryptDS3Regulation(Constants.MOD_DIR + filename, bnd);
-        }
+ 
     }
 }
