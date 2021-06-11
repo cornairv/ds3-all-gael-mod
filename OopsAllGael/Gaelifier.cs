@@ -29,7 +29,7 @@ namespace OopsAllGael
             ModifyEvents();
             InsertScripts();
             InsertSfx();
-            InsertModels();
+            //InsertModels();
         }
 
         static void InsertScripts()
@@ -57,18 +57,21 @@ namespace OopsAllGael
 
         static void InsertCommonEvents(EMEVD emevd)
         {
-            EventArg<int> gael_phase1 = new EventArg<int>();
-            EventArg<int> gael_phase2 = new EventArg<int>();
+            EventArg<int> gael_phase1;
+            EventArg<int> gael_phase2;
             EMEVD.Event newEvent = new EventBuilder()
                 .Event(Constants.GAEL_EVENT_ID, EMEVD.Event.RestBehaviorType.Restart)
-                .Param(gael_phase1).Param(gael_phase2)
+                .Param(out gael_phase1).Param(out gael_phase2)
 
                 // disable first Gael if second is dead
                 .WaitFixedTimeFrames(1)
+                .IfCharacterDeadAlive(ConditionGroup.Or01, gael_phase1, DeathState.Dead, ComparisonType.Equal, 1)
                 .IfCharacterDeadAlive(ConditionGroup.Or01, gael_phase2, DeathState.Dead, ComparisonType.Equal, 1)
                 .GotoIfConditionGroupStateUncompiled(Label.Label0, ConditionState.Fail, ConditionGroup.Or01)
                 .ChangeCharacterEnableState(gael_phase1, DisabledEnabled.Disabled)
+                .ChangeCharacterEnableState(gael_phase2, DisabledEnabled.Disabled)
                 .ActivateHit(gael_phase1, DisabledEnabled.Disabled)
+                .ActivateHit(gael_phase2, DisabledEnabled.Disabled)
                 .EndUnconditionally(EventEndType.End)
 
                 // disable second gael until first is dead
@@ -85,13 +88,12 @@ namespace OopsAllGael
 
             emevd.Events.Add(newEvent);
 
-            gael_phase1 = new EventArg<int>();
-            gael_phase2 = new EventArg<int>();
-            EventArg<short> slotNumber = new EventArg<short>();
-            EventArg<int> nameId = new EventArg<int>();
+            EventArg<short> slotNumber;
+            EventArg<int> nameId;
             newEvent = new EventBuilder()
                 .Event(Constants.GAEL_BOSS_EVENT, EMEVD.Event.RestBehaviorType.Restart)
-                .Param(gael_phase1).Param(gael_phase2).Param(slotNumber).Param(nameId)
+                .Param(out gael_phase1).Param(out gael_phase2).Param(out slotNumber).Param(out nameId)
+                .WaitFixedTimeFrames(1)
                 .IfCharacterDeadAlive(ConditionGroup.And01, gael_phase2, DeathState.Alive, ComparisonType.Equal, 1)
                 .IfCharacterHpRatio(ConditionGroup.And01, gael_phase1, ComparisonType.Equal, 0.0f, ComparisonType.Equal, 1)
                 .IfConditionGroup(ConditionGroup.Main, ConditionState.Pass, ConditionGroup.And01)
@@ -102,15 +104,11 @@ namespace OopsAllGael
 
             emevd.Events.Add(newEvent);
 
-            gael_phase1 = new EventArg<int>();
             newEvent = new EventBuilder()
-                .Event(Constants.GAEL_AGGRO_EVENT, EMEVD.Event.RestBehaviorType.Restart)
-                .Param(gael_phase1)
-                .SetCharacterAiState(gael_phase1, DisabledEnabled.Disabled)
-                .IfCharacterHpRatio(ConditionGroup.Or01, gael_phase1, ComparisonType.Lessorequal, 0.99f, ComparisonType.Equal, 1)
-                .IfEntityInOutsideRadiusOfEntity(ConditionGroup.Or01, InsideOutsideState.Inside, 10000, gael_phase1, Constants.GAEL_AGGRO_RANGE, 1)
-                .IfConditionGroup(ConditionGroup.Main, ConditionState.Pass, ConditionGroup.Or01)
-                .SetCharacterAiState(gael_phase1, DisabledEnabled.Enabled)
+                .Event(Constants.GAEL_CAGE_EVENT, EMEVD.Event.RestBehaviorType.Restart)
+                .Param(out gael_phase1)
+                .ActivateHit(gael_phase1, DisabledEnabled.Disabled)
+                .SetCharacterGravity(gael_phase1, DisabledEnabled.Disabled)
                 .Build();
 
             emevd.Events.Add(newEvent);
@@ -140,27 +138,21 @@ namespace OopsAllGael
                 EMEVD.Event resetEvent = events[i];
                 events.RemoveAt(i);
 
-                HashSet<int> unvisitedEnemies = new HashSet<int>(enemyEntityIdMap[mapId]);
-
                 EventBuilder startEventBuilder = new EventBuilder()
                     .Event(startEvent, 0)
-                    .ForEach(EventModifier(events, commonEvents, visitedEvents, unvisitedEnemies));
+                    .ForEach(EventModifier(events, commonEvents, visitedEvents));
 
                 foreach (int entityId in enemyEntityIdMap[mapId])
                 {
                     startEventBuilder.InitializeCommonEvent(Constants.GAEL_EVENT_ID, null, entityId, gaelEntityIds[entityId]);
                 }
 
-                /*
-                foreach (int entityId in enemiesThatNeedAggroRange[mapId].Concat(unvisitedEnemies))
-                {
-                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_AGGRO_EVENT, null, entityId);
-                }
-                */
+                startEventBuilder.InitializeCommonEvent(Constants.GAEL_CAGE_EVENT, null, 3100710); // undead settlement Cornyx
+
 
                 new EventBuilder()
                     .Event(resetEvent, 0)
-                    .ForEach(EventModifier(events, commonEvents, visitedEvents, new HashSet<int>()));
+                    .ForEach(EventModifier(events, commonEvents, visitedEvents));
 
                 for (int j = 0; j < bossGaels.Count; j++)
                 {
@@ -176,12 +168,10 @@ namespace OopsAllGael
         }
 
         // Modify events referenced by InitializeEvent/InitializeCommonEvent instructions
-        static Predicate<MyInstr> EventModifier(List<EMEVD.Event> events, List<EMEVD.Event> commonEvents, HashSet<int> visitedEvents, HashSet<int> unvisitedEnemies)
+        static Predicate<MyInstr> EventModifier(List<EMEVD.Event> events, List<EMEVD.Event> commonEvents, HashSet<int> visitedEvents)
         {
             return delegate (MyInstr myInstr)
             {
-                return false;
-                bool ret = false;
                 if (myInstr is InstrWrapper.AbstractInitializeEvent instr)
                 {
                     EventArg<int> eventId = instr.eventId;
@@ -207,33 +197,32 @@ namespace OopsAllGael
                         eventBuilder.Seek(0);
                     }
 
-                    Dictionary<int, object> paramMap = new Dictionary<int, object>();
                     Dictionary<int, EventArg<int>> gaelMap = new Dictionary<int, EventArg<int>>();
                     for (int i = 0; i < parameters.Count; i++)
                     {
-                        paramMap[i] = parameters[i].Value;
                         if (IsGael(null, parameters[i].Value))
                         {
                             // Add another parameter with gael phase 2
-                            EventArg<int> newGaelParam = new EventArg<int>();
-                            eventBuilder.Param(newGaelParam);
+                            EventArg<int> newGaelParam;
+                            eventBuilder.Param(out newGaelParam);
                             gaelMap[i] = newGaelParam;
-                            unvisitedEnemies.Remove(parameters[i].Value);
                             instr.AddParam(gaelEntityIds[parameters[i].Value]);
-                            ret = true;
+                            instr.modified = true;
                         }
                     }
+
+                    eventBuilder.ForEach(InstrModifier(eventBuilder, gaelMap, instr, visitedEvents.Contains(eventId.Value)));
                     if (!visitedEvents.Contains(eventId.Value))
                     {
-                        //Console.WriteLine("Warning: skipped event ID " + eventId.Value);
-                        eventBuilder.ForEach(InstrModifier(eventBuilder, paramMap, gaelMap, unvisitedEnemies));
                         visitedEvents.Add(eventId.Value);
+                        //Console.WriteLine("Warning: skipped event ID " + eventId.Value);
                         PostprocessEvent(eventBuilder, eventId.Value);
                     }
 
+                    return instr.modified;
                 }
 
-                return ret;
+                return false;
             };
         }
 

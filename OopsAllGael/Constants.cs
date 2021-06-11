@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using OopsAllGael.EventEnum;
 
 namespace OopsAllGael
 {
@@ -63,6 +64,16 @@ namespace OopsAllGael
             5110801
         };
 
+        public static readonly HashSet<TeamType> FRIENDLY_TEAMS = new HashSet<TeamType>()
+        {
+            TeamType.Ally,
+            TeamType.CoOp,
+            TeamType.CoOpNpc,
+            TeamType.WhitePhantom,
+            TeamType.Human,
+            TeamType.FriendlyNpc
+        };
+
         public const string MOD_DIR = @"mod\";
 
         public const int GAEL_PHASE1_PARAM_ID = 620100;
@@ -73,7 +84,9 @@ namespace OopsAllGael
 
         public const int GAEL_EVENT_ID = 30000000;
         public const int GAEL_BOSS_EVENT = 30000001;
-        public const int GAEL_AGGRO_EVENT = 30000002;
+        public const int GAEL_CAGE_EVENT = 30000002;
+
+        public const int ANIM_OFFSET = 100000;
 
         public const float GAEL_AGGRO_RANGE = 20.0f;
     }

@@ -10,8 +10,24 @@ namespace OopsAllGael
 {
     using AnimThreadArgs = Tuple<int, byte[], byte[], byte[], byte[], DCX.Type>;
     using ModelThreadArgs = Tuple<int, byte[], byte[], byte[], DCX.Type>;
+
+
     partial class Gaelifier
     {
+        static HashSet<int> gaelAnimIds = new HashSet<int>(); // valid animation IDs for Gael phase 1
+
+        public static void GetGaelAnimIds()
+        {
+            BND4 bnd = BND4.Read(@"chr\c6201.anibnd.dcx");
+            BinderFile bndf = bnd.Files.Find(f => f.Name.EndsWith(".tae", StringComparison.OrdinalIgnoreCase)) ?? throw new KeyNotFoundException();
+            TAE3 tae = TAE3.Read(bndf.Bytes);
+            foreach (TAE3.Animation anim in tae.Animations)
+            {
+                Console.WriteLine(anim.ID);
+                gaelAnimIds.Add((int)anim.ID % 1000000);
+            }
+        }
+
         public static void InsertModels()
         {
             animIds.Remove(0);
@@ -115,22 +131,18 @@ namespace OopsAllGael
                 }
                 else if (bndfToCopy.Name.EndsWith(".hkx", StringComparison.OrdinalIgnoreCase))
                 {
-                    string animName = Path.GetFileNameWithoutExtension(bndfToCopy.Name);
-                    float animToCopyDuration = GetAnimDuration(bndfToCopy.Bytes);
-                    MyDebug.Assert(animToCopyDuration != 0);
-                    animToCopyDurations[animName] = animToCopyDuration;
-
-                    BinderFile bndf = bnd.Files.Find(f => f.Name == bndfToCopy.Name);
-                    if (bndf == null)
+                    string animFileName = Path.GetFileNameWithoutExtension(bndfToCopy.Name);
+                    int n1 = int.Parse(animFileName.Substring(1, 3));
+                    int n2 = int.Parse(animFileName.Substring(5));
+                    if (n2 >= 100000)
                     {
-                        //bndfToCopy.Bytes = defaultAnim.Bytes;
-                        animBndfsToCopy.Add(bndfToCopy);
-                        //bndf = defaultAnim;
-                        bndf = bndfToCopy;
+                        // skip test animations
+                        continue;
                     }
-
-                    float animDuration = GetAnimDuration(bndf.Bytes);
-                    animDurations[animName] = animDuration;
+                    n2 += Constants.ANIM_OFFSET;
+                    bndfToCopy.Name = bndfToCopy.Name.Substring(0, bndfToCopy.Name.Length - 15) +  string.Format("a{0:D3}_{1:D6}.hkx", n1, n2);
+                    bndfToCopy.ID += Constants.ANIM_OFFSET;
+                    animBndfsToCopy.Add(bndfToCopy);
                 }
                 else if (!bndfToCopy.Name.EndsWith(".tae", StringComparison.OrdinalIgnoreCase))
                 {
@@ -145,60 +157,24 @@ namespace OopsAllGael
             List<TAE3.Animation> animsToCopy = new List<TAE3.Animation>();
             foreach (TAE3.Animation animToCopy in taeToCopy.Animations)
             {
-                string animFileName = Path.GetFileNameWithoutExtension(animToCopy.AnimFileName);
-                float durationRatio = 1;
-                if (animToCopyDurations.ContainsKey(animFileName))  // not every hkt has an hkx
+                if (animToCopy.AnimFileReference)
                 {
-                    if (animDurations[animFileName] < animDurations[animFileName])
-                    {
-                        durationRatio = animDurations[animFileName] / animToCopyDurations[animFileName];
-                    }
+                    animToCopy.AnimFileUnk18 += Constants.ANIM_OFFSET;
+                }
+                if (animToCopy.AnimFileName != "")
+                {
+                    string animFileName = Path.GetFileNameWithoutExtension(animToCopy.AnimFileName);
+                    int hktN1 = int.Parse(animFileName.Substring(1, 3));
+                    int hktN2 = int.Parse(animFileName.Substring(5));
+                    hktN2 += Constants.ANIM_OFFSET;
+                    animToCopy.AnimFileName = string.Format("a{0:D3}_{1:D6}.hkt", hktN1, hktN2);
                 }
 
-                animToCopy.Events.RemoveAll(delegate (TAE3.Event ev)
-                {
-                    switch (ev.Type)
-                    {
-                        case TAE3.EventType.SetEventMessageID:
-                        case TAE3.EventType.PlayFFX:
-                        case TAE3.EventType.CreateSpEffect:
-                        case TAE3.EventType.CreateSpEffect1:
-                        case TAE3.EventType.CreateSpEffect2:
-                            ev.StartTime *= durationRatio;
-                            ev.EndTime *= durationRatio;
-                            return false;
-                    }
-                    return true;
-                });
-                animToCopy.EventGroups.Clear();
-                if (animToCopy.Events.Count > 0)
-                {
-                    for (int i = 0; i < animToCopy.Events.Count; i++)
-                    {
-                        TAE3.EventGroup evg = new TAE3.EventGroup(animToCopy.Events[i].Type);
-                        evg.Indices.Add(i);
-                        animToCopy.EventGroups.Add(evg);
-                    }
-                }
+                int n1 = (int)(animToCopy.ID / 1000000);
+                int n2 = (int)(animToCopy.ID % 1000000);
+                animToCopy.ID += Constants.ANIM_OFFSET;
 
-
-                TAE3.Animation anim = tae.Animations.Find(a => a.ID == animToCopy.ID);
-                if (anim == null)
-                {
-                    animsToCopy.Add(animToCopy);
-                }
-                else if (anim.ID == animToCopy.ID)
-                {
-                    foreach (TAE3.EventGroup evg in animToCopy.EventGroups)
-                    {
-                        for (int i = 0; i < evg.Indices.Count; i++)
-                        {
-                            evg.Indices[i] += anim.Events.Count;
-                        }
-                    }
-                    anim.Events.AddRange(animToCopy.Events);
-                    anim.EventGroups.AddRange(animToCopy.EventGroups);
-                }
+                animsToCopy.Add(animToCopy);
             }
             tae.Animations.AddRange(animsToCopy);
             taeBndf.Bytes = tae.Write();

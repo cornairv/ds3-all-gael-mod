@@ -12,7 +12,7 @@ namespace OopsAllGael
 {
     partial class Gaelifier
     {
-        static void InsertParams()
+            static void InsertParams()
         {
             string filename = "Data0.bdt";
             BND4 bnd = SFUtil.DecryptDS3Regulation(filename);
@@ -44,33 +44,60 @@ namespace OopsAllGael
                     .FindAll(cell => cell.Def.DisplayName.StartsWith("spEffectId"))
                     .Select(cell => (int)cell.Value)
                     .ToList();
-                //Util.SetCellValue(gael1Row, "subTeamType", (byte)teamType);
+                Util.SetCellValue(myGaelPhase1Row, "disableIntiliazeDead", true);
+                Util.SetCellValue(myGaelPhase1Row, "disableRespawn", false);
 
                 // create a new entry for Gael phase 2 with modified parameters
                 PARAM.Row myGaelPhase2Row = Util.CopyRow(gaelPhase2Row, paramdef);
                 myGaelPhase2Row.ID = Constants.MY_GAEL_PHASE2_PARAM_ID;
                 myGaelPhase2Row.Name = "gael2";
                 Util.ModifyCellValue(myGaelPhase2Row, "Hp", (int value) => (int)Math.Ceiling(value * 0.65));
-                Util.SetCellValue(myGaelPhase2Row, "getSoul", 120000);
-                Util.SetCellValue(myGaelPhase2Row, "isSoulGetByBoss", true);
-                Util.SetCellValue(myGaelPhase2Row, "disableIntiliazeDead", false);
+                //Util.SetCellValue(myGaelPhase2Row, "getSoul", 120000);
+                //Util.SetCellValue(myGaelPhase2Row, "isSoulGetByBoss", true);
                 Util.SetCellValue(myGaelPhase2Row, "subTeamType", (byte)TeamType.StrongEnemy);
+                Util.SetCellValue(myGaelPhase2Row, "disableIntiliazeDead", false);
+                Util.SetCellValue(myGaelPhase2Row, "dropType", 1);
+
+
+                List<PARAM.Row> newRows = new List<PARAM.Row>();
+                newRows.Add(myGaelPhase1Row);
+                newRows.Add(myGaelPhase2Row);
 
                 foreach (PARAM.Row row in param.Rows)
                 {
-                    if (!npcParamIds.Contains(row.ID)) continue;
+                    if (!npcParamIds.ContainsKey(row.ID)) continue;
                     row.Name = "edit";
                     int gaelSpEffectIndex = 0;
+                    PARAM.Row phase2Row = Util.CopyRow(row, paramdef);
+                    phase2Row.ID = npcParamIds[row.ID];
+
                     for (int i = 0; i < row.Cells.Count; i++)
                     {
                         PARAM.Cell cell = row.Cells[i];
-                        //cell.Value = myGaelPhase1Row.Cells[i].Value;
-                        //continue;
-                        if (cell.Def.DisplayName.StartsWith("ItemLotId") || cell.Def.DisplayName == "PhantomParamId"
-                            || cell.Def.DisplayName == "TextId" || cell.Def.DisplayName == "subPhantomParamId")
+                        switch (cell.Def.DisplayName)
                         {
-                            // pass
+                            case "humanityLotId":
+                            case "PhantomParamId":
+                            case "TextId":
+                            case "subPhantomParamId":
+                            case "npcType":
+                            case "subNpcType":
+                            case "isSoulGetByBoss":
+                            case "disableRespawn": // buggy wandering NPCs if this isn't included
+                                // keep original enemy's values
+                                break;
+                            case "teamType":
+                            case "subTeamType":
+                                if (!Constants.FRIENDLY_TEAMS.Contains((TeamType)(byte)cell.Value))
+                                {
+                                    cell.Value = TeamType.StrongEnemy;
+                                }
+                                break;
+                            default:
+                                cell.Value = myGaelPhase1Row.Cells[i].Value;
+                                break;
                         }
+                        /*
                         else if (cell.Def.DisplayName.StartsWith("spEffectId"))
                         {
                             if ((int)cell.Value == 0 && gaelSpEffectIndex < gaelSpEffectIds.Count)
@@ -78,33 +105,45 @@ namespace OopsAllGael
                                 cell.Value = gaelSpEffectIds[gaelSpEffectIndex++];
                             }
                         }
-                        /*
-                        else if (cell.Def.DisplayName == "normalChangeAnimChrId")
-                        {
-                            // make sure param has an override anim or we found an anim in InsertEnemies(), but not both
-                            if ((short)cell.Value == -1)
-                            {
-                                MyDebug.Assert(npcParamIdToAnimId.ContainsKey(row.ID));
-                                cell.Value = npcParamIdToAnimId[row.ID];
-                            }
-                            else
-                            {
-                                MyDebug.Assert(!npcParamIdToAnimId.ContainsKey(row.ID));
-                            }
-                        }
                         */
-                        else if (cell.Def.DisplayName.StartsWith("normalChange"))
+                    }
+                    for (int i = 0; i < phase2Row.Cells.Count; i++)
+                    {
+                        PARAM.Cell cell = phase2Row.Cells[i];
+                        switch (cell.Def.DisplayName)
                         {
-                            //cell.Value = -1;
-                        }
-                        else
-                        {
-                            cell.Value = myGaelPhase1Row.Cells[i].Value;
+                            case string name when name.StartsWith("ItemLotId"):
+                            case "humanityLotId":
+                            case "PhantomParamId":
+                            case "TextId":
+                            case "subPhantomParamId":
+                            case "npcType":
+                            case "subNpcType":
+                            case "getSoul":
+                            case "disableRespawn":
+                            case "disableIntiliazeDead":
+                            case "isSoulGetByBoss":
+                                // keep original enemy's values
+                                break;
+                            case "teamType":
+                            case "subTeamType":
+                                if (!Constants.FRIENDLY_TEAMS.Contains((TeamType)(byte)cell.Value))
+                                {
+                                    cell.Value = TeamType.StrongEnemy;
+                                }
+                                break;
+                            default:
+                                cell.Value = myGaelPhase2Row.Cells[i].Value;
+                                break;
                         }
                     }
+                    newRows.Add(phase2Row);
                 }
-                Util.InsertRow(param, myGaelPhase1Row);
-                Util.InsertRow(param, myGaelPhase2Row);
+
+                foreach (PARAM.Row row in newRows)
+                {
+                    Util.InsertRow(param, row);
+                }
 
                 tmp_bndf.Bytes = param.Write();
             }
@@ -124,15 +163,36 @@ namespace OopsAllGael
                     for (int i = 0; i < row.Cells.Count; i++)
                     {
                         PARAM.Cell cell = row.Cells[i];
-                        //cell.Value = gaelPhase1Row.Cells[i].Value;
-                        //continue;
-                        if (cell.Def.DisplayName == "logicId" || cell.Def.DisplayName == "battleGoalId")
+                        switch (cell.Def.DisplayName)
                         {
-                            cell.Value = gaelPhase1Row.Cells[i].Value;
-                        }
-                        else
-                        {
-                            // pass
+                            /*
+                            case "logicId":
+                            case string name when name.ToLower().Contains("home"):
+                            case string name2 when name2.ToLower().Contains("forget"):
+                            case string name3 when name3.StartsWith("goal"):
+                            case string name4 when name4.StartsWith("enableNavi"):
+                            case string name5 when name5.ToLower().Contains("state"):
+                            case "battleGoalId" when !friendlyThinkParamIds.Contains(row.ID):
+                                cell.Value = gaelPhase1Row.Cells[i].Value;
+                                break;
+                            */
+
+                            //case string name1 when name1.EndsWith("_angX"):
+                            //case string name2 when name2.EndsWith("_angY"):
+                            //case "logicId":
+                            case string name0 when name0.EndsWith("_dist"):
+                            case string name1 when name1.EndsWith("Dark"):
+                            case string name4 when name4.StartsWith("callHelp_") && !name4.Contains("Action"):
+                            case "teamAttackEffectivity":
+                            case "nonBattleActLife":
+                            case "BattleStartDist":
+                            case "disablePathMove":
+                            case "interestCategory":
+                            case "thinkAttrDoAdmirer":
+                                break; // keep original value
+                            default:
+                                cell.Value = gaelPhase1Row.Cells[i].Value;
+                                break;
                         }
                     }
                 }

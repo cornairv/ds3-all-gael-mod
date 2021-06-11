@@ -36,17 +36,9 @@ namespace OopsAllGael
             return this;
         }
 
-        public EventBuilder Param<T>(EventArg<T> param)
+        public EventBuilder Param<T>(out EventArg<T> param)
         {
-            if (!param.isParam)
-            {
-                throw new ArgumentException("Invalid parameter");
-            }
-            if (param.index != null)
-            {
-                throw new ArgumentException("Parameter already initialized");
-            }
-            param.index = paramCount++;
+            param = new EventArg<T>() { index = paramCount++ };
             return this;
         }
 
@@ -119,29 +111,6 @@ namespace OopsAllGael
 
         }
 
-        /*
-        public EventBuilder Find(Predicate<MyInstr> pred)
-        {
-            while (!AtEnd)
-            {
-                MyInstr myInstr = MyInstr.FromInstr(CurrentInstruction, cursor, event_.Parameters);
-                bool ret = pred(myInstr);
-                if (!ret)
-                {
-                    Skip(1);
-                }
-                else
-                {
-                    Remove();
-                    Insert(myInstr.ToInstr(cursor, event_.Parameters, paramCount));
-                    Skip(-1);
-                    break;
-                }
-            }
-            return this;
-        }
-        */
-
         public EventBuilder ForEach(Predicate<MyInstr> pred)
         {
             while (!AtEnd)
@@ -186,55 +155,6 @@ namespace OopsAllGael
 
             return arg.ToObject(argType);
         }
-
-        
-
-        /*
-
-        public InitializeEventBuilder InitializeEvent(EventArg<int> eventSlotId, EventArg<uint> eventId, uint? layerMask = null)
-        {
-            List<object> args = new List<object>();
-            args.Add(MakeArgObject(eventSlotId, EMEVD.Instruction.ArgType.Int32, args));
-            args.Add(MakeArgObject(eventId, EMEVD.Instruction.ArgType.UInt32, args));
-            return new InitializeEventBuilder(this, InstrType.InitializeEvent, layerMask, args);
-        }
-
-        public InitializeEventBuilder InitializeCommonEvent(EventArg<uint> eventId, uint? layerMask = null)
-        {
-            List<object> args = new List<object>();
-            args.Add(MakeArgObject(eventId, EMEVD.Instruction.ArgType.UInt32, args));
-            return new InitializeEventBuilder(this, InstrType.InitializeCommonEvent, layerMask, args);
-        }
-
-        public class InitializeEventBuilder
-        {
-            readonly EventBuilder parent;
-            InstrType instrType;
-            List<object> args = new List<object>();
-            uint? layerMask;
-
-            public InitializeEventBuilder(EventBuilder parent, InstrType instrType, uint? layerMask, IEnumerable<object> initialArgs)
-            {
-                this.parent = parent;
-                this.instrType = instrType;
-                args.AddRange(initialArgs);
-                this.layerMask = layerMask;
-            }
-
-            public InitializeEventBuilder Arg<T>(EventArg<T> arg)
-            {
-                args.Add(parent.MakeArgObject(arg, Util.ArgTypeFromType<T>(), args));
-                return this;
-            }
-
-            public EventBuilder Build()
-            {
-                EMEVD.Instruction instr = new EMEVD.Instruction((int)instrType >> 8, (int)instrType & 0xFF, layerMask, args);
-                parent.Insert(instr);
-                return parent;
-            }
-        }
-        */
     }
 
     abstract partial class MyInstr
@@ -242,6 +162,7 @@ namespace OopsAllGael
         public uint? layerMask;
         public readonly InstrType instrType;
         protected EMEVD.Instruction.ArgType[] _argTypes;
+        public bool modified = false;
 
         public MyInstr(InstrType instrType, uint? layerMask)
         {
