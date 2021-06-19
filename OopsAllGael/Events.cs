@@ -9,10 +9,13 @@ namespace OopsAllGael
 {
     abstract partial class MyInstr
     {
+        public static MyInstr FromInstr(EMEVD.Instruction instr)
+        {
+            return FromInstr(instr, 0, new List<EMEVD.Parameter>());
+        }
         public static MyInstr FromInstr(EMEVD.Instruction instr, int index, List<EMEVD.Parameter> parameters)
         {
-            InstrType instrType = (InstrType) ((instr.Bank << 8) | instr.ID);
-            switch (instrType)
+            switch (Util.GetInstrType(instr))
             {
                 case InstrType.InitializeCommonEvent:
                     {
@@ -3550,6 +3553,257 @@ namespace OopsAllGael
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { eventId }.Concat(parameters).ToArray(); }
         }
+
+        abstract class AbstractDisplayBossHealthBar : MyInstr
+        {
+            public EventArg<EventEnum.DisabledEnabled> disabledEnabled;
+            public EventArg<int> entityId;
+            public EventArg<short> slotNumber;
+            public EventArg<int> nameId;
+            protected AbstractDisplayBossHealthBar(InstrType instrType, uint? layerMask) : base(instrType, layerMask)
+            {
+            }
+        }
+        class DisplayBossHealthBar : AbstractDisplayBossHealthBar
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int16, EMEVD.Instruction.ArgType.Int32 };
+            
+            public DisplayBossHealthBar(AbstractEventArg[] args, uint? layerMask) : base(InstrType.DisplayBossHealthBar, layerMask)
+            {
+                _argTypes = argTypes;
+                disabledEnabled = (EventArg<EventEnum.DisabledEnabled>)args[0];
+                entityId = (EventArg<int>)args[1];
+                slotNumber = (EventArg<short>)args[2];
+                nameId = (EventArg<int>)args[3];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { disabledEnabled, entityId, slotNumber, nameId }; }
+        }
+        class DisplayDecoratedBossHealthBar : AbstractDisplayBossHealthBar
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int16, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Byte };
+            public EventArg<byte> decorationId;
+            public DisplayDecoratedBossHealthBar(AbstractEventArg[] args, uint? layerMask) : base(InstrType.DisplayDecoratedBossHealthBar, layerMask)
+            {
+                _argTypes = argTypes;
+                disabledEnabled = (EventArg<EventEnum.DisabledEnabled>)args[0];
+                entityId = (EventArg<int>)args[1];
+                slotNumber = (EventArg<short>)args[2];
+                nameId = (EventArg<int>)args[3];
+                decorationId = (EventArg<byte>)args[4];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { disabledEnabled, entityId, slotNumber, nameId, decorationId }; }
+        }
+
+        abstract class AbstractSkipEvent : MyInstr
+        {
+            public EventArg<byte> numberOfSkippedLines;
+            protected AbstractSkipEvent(InstrType instrType, uint? layerMask) : base(instrType, layerMask)
+            {
+            }
+        }
+        class SkipIfConditionGroupStateUncompiled : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte };
+            public EventArg<EventEnum.ConditionState> desiredConditionGroupState;
+            public EventArg<EventEnum.ConditionGroup> targetConditionGroup;
+            public SkipIfConditionGroupStateUncompiled(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfConditionGroupStateUncompiled, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                desiredConditionGroupState = (EventArg<EventEnum.ConditionState>)args[1];
+                targetConditionGroup = (EventArg<EventEnum.ConditionGroup>)args[2];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredConditionGroupState, targetConditionGroup }; }
+        }
+        class SkipUnconditionally : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte };
+            public SkipUnconditionally(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipUnconditionally, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines }; }
+        }
+        class SkipIfComparison : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
+            public EventArg<EventEnum.ComparisonType> comparisonType;
+            public EventArg<int> leftHandSide;
+            public EventArg<int> rightHandSide;
+            public SkipIfComparison(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfComparison, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                comparisonType = (EventArg<EventEnum.ComparisonType>)args[1];
+                leftHandSide = (EventArg<int>)args[2];
+                rightHandSide = (EventArg<int>)args[3];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, comparisonType, leftHandSide, rightHandSide }; }
+        }
+        class SkipIfConditionGroupStateCompiled : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte };
+            public EventArg<EventEnum.ConditionState> desiredConditionGroupState;
+            public EventArg<EventEnum.ConditionGroup> targetConditionGroup;
+            public SkipIfConditionGroupStateCompiled(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfConditionGroupStateCompiled, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                desiredConditionGroupState = (EventArg<EventEnum.ConditionState>)args[1];
+                targetConditionGroup = (EventArg<EventEnum.ConditionGroup>)args[2];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredConditionGroupState, targetConditionGroup }; }
+        }
+        class SkipIfEventFlag : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32 };
+            public EventArg<EventEnum.OnOff> desiredFlagState;
+            public EventArg<EventEnum.TargetEventFlagType> targetEventFlagType;
+            public EventArg<int> targetEventFlagId;
+            public SkipIfEventFlag(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfEventFlag, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                desiredFlagState = (EventArg<EventEnum.OnOff>)args[1];
+                targetEventFlagType = (EventArg<EventEnum.TargetEventFlagType>)args[2];
+                targetEventFlagId = (EventArg<int>)args[3];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredFlagState, targetEventFlagType, targetEventFlagId }; }
+        }
+        class SkipIfBatchEventFlags : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
+            public EventArg<EventEnum.LogicalOperationType> desiredFlagState;
+            public EventArg<EventEnum.TargetEventFlagType> targetEventFlagType;
+            public EventArg<int> startingTargetEventFlagId;
+            public EventArg<int> endingTargetEventFlagId;
+            public SkipIfBatchEventFlags(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfBatchEventFlags, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                desiredFlagState = (EventArg<EventEnum.LogicalOperationType>)args[1];
+                targetEventFlagType = (EventArg<EventEnum.TargetEventFlagType>)args[2];
+                startingTargetEventFlagId = (EventArg<int>)args[3];
+                endingTargetEventFlagId = (EventArg<int>)args[4];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredFlagState, targetEventFlagType, startingTargetEventFlagId, endingTargetEventFlagId }; }
+        }
+        class SkipIfMultiplayerState : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte };
+            public EventArg<EventEnum.MultiplayerState> desiredMultiplayerState;
+            public SkipIfMultiplayerState(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfMultiplayerState, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                desiredMultiplayerState = (EventArg<EventEnum.MultiplayerState>)args[1];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredMultiplayerState }; }
+        }
+        class SkipIfPlayerInOutMap : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte };
+            public EventArg<bool> shouldPlayerBeInside;
+            public EventArg<byte> areaId;
+            public EventArg<byte> blockId;
+            public SkipIfPlayerInOutMap(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfPlayerInOutMap, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                shouldPlayerBeInside = (EventArg<bool>)args[1];
+                areaId = (EventArg<byte>)args[2];
+                blockId = (EventArg<byte>)args[3];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, shouldPlayerBeInside, areaId, blockId }; }
+        }
+        class SkipIfNumberOfCoOpClients : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte };
+            public EventArg<EventEnum.ComparisonType> comparisonType;
+            public EventArg<byte> targetNumberOfClients;
+            public SkipIfNumberOfCoOpClients(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfNumberOfCoOpClients, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                comparisonType = (EventArg<EventEnum.ComparisonType>)args[1];
+                targetNumberOfClients = (EventArg<byte>)args[2];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, comparisonType, targetNumberOfClients }; }
+        }
+        class SkipIfNumberOfClientsOfType : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte };
+            public EventArg<EventEnum.ClientType> clientType;
+            public EventArg<EventEnum.ComparisonType> comparisonType;
+            public EventArg<byte> targetNumberOfClients;
+            public SkipIfNumberOfClientsOfType(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfNumberOfClientsOfType, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                clientType = (EventArg<EventEnum.ClientType>)args[1];
+                comparisonType = (EventArg<EventEnum.ComparisonType>)args[2];
+                targetNumberOfClients = (EventArg<byte>)args[3];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, clientType, comparisonType, targetNumberOfClients }; }
+        }
+        class SkipIfCharacterHasSpeffect : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Int32 };
+            public EventArg<int> targetEntityId;
+            public EventArg<int> speffectId;
+            public EventArg<bool> shouldHave;
+            public EventArg<EventEnum.ComparisonType> comparisonType;
+            public EventArg<int> numberOfTargetCharacters;
+            public SkipIfCharacterHasSpeffect(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfCharacterHasSpeffect, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                targetEntityId = (EventArg<int>)args[1];
+                speffectId = (EventArg<int>)args[2];
+                shouldHave = (EventArg<bool>)args[3];
+                comparisonType = (EventArg<EventEnum.ComparisonType>)args[4];
+                numberOfTargetCharacters = (EventArg<int>)args[5];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, targetEntityId, speffectId, shouldHave, comparisonType, numberOfTargetCharacters }; }
+        }
+        class SkipIfPlayerInOutsideArea : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
+            public EventArg<EventEnum.InsideOutsideState> desiredState;
+            public EventArg<int> targetEntityId;
+            public EventArg<int> areaEntityId;
+            public EventArg<int> numberOfTargetCharacters;
+            public SkipIfPlayerInOutsideArea(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfPlayerInOutsideArea, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                desiredState = (EventArg<EventEnum.InsideOutsideState>)args[1];
+                targetEntityId = (EventArg<int>)args[2];
+                areaEntityId = (EventArg<int>)args[3];
+                numberOfTargetCharacters = (EventArg<int>)args[4];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredState, targetEntityId, areaEntityId, numberOfTargetCharacters }; }
+        }
+        class SkipIfObjectDestroyed : AbstractSkipEvent
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Single };
+            public EventArg<EventEnum.DestructionState> damageState;
+            public EventArg<int> targetObjectEntityId;
+            public EventArg<EventEnum.ComparisonType> comparisonType;
+            public EventArg<float> numberOfTargetObjects;
+            public SkipIfObjectDestroyed(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfObjectDestroyed, layerMask)
+            {
+                _argTypes = argTypes;
+                numberOfSkippedLines = (EventArg<byte>)args[0];
+                damageState = (EventArg<EventEnum.DestructionState>)args[1];
+                targetObjectEntityId = (EventArg<int>)args[2];
+                comparisonType = (EventArg<EventEnum.ComparisonType>)args[3];
+                numberOfTargetObjects = (EventArg<float>)args[4];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, damageState, targetObjectEntityId, comparisonType, numberOfTargetObjects }; }
+        }
+
         class IfConditionGroup : MyInstr
         {
             public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte };
@@ -4762,21 +5016,6 @@ namespace OopsAllGael
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { desiredConditionGroupState, targetConditionGroup }; }
         }
-        class SkipIfConditionGroupStateUncompiled : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.ConditionState> desiredConditionGroupState;
-            public EventArg<EventEnum.ConditionGroup> targetConditionGroup;
-            public SkipIfConditionGroupStateUncompiled(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfConditionGroupStateUncompiled, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                desiredConditionGroupState = (EventArg<EventEnum.ConditionState>)args[1];
-                targetConditionGroup = (EventArg<EventEnum.ConditionGroup>)args[2];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredConditionGroupState, targetConditionGroup }; }
-        }
         class EndIfConditionGroupStateUncompiled : MyInstr
         {
             public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte };
@@ -4792,17 +5031,6 @@ namespace OopsAllGael
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType, desiredConditionGroupState, targetConditionGroup }; }
         }
-        class SkipUnconditionally : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte };
-            public EventArg<byte> numberOfSkippedLines;
-            public SkipUnconditionally(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipUnconditionally, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines }; }
-        }
         class EndUnconditionally : MyInstr
         {
             public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte };
@@ -4813,23 +5041,6 @@ namespace OopsAllGael
                 executionEndType = (EventArg<EventEnum.EventEndType>)args[0];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType }; }
-        }
-        class SkipIfComparison : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.ComparisonType> comparisonType;
-            public EventArg<int> leftHandSide;
-            public EventArg<int> rightHandSide;
-            public SkipIfComparison(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfComparison, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                comparisonType = (EventArg<EventEnum.ComparisonType>)args[1];
-                leftHandSide = (EventArg<int>)args[2];
-                rightHandSide = (EventArg<int>)args[3];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, comparisonType, leftHandSide, rightHandSide }; }
         }
         class EndIfComparison : MyInstr
         {
@@ -4847,21 +5058,6 @@ namespace OopsAllGael
                 rightHandSide = (EventArg<int>)args[3];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType, comparisonType, leftHandSide, rightHandSide }; }
-        }
-        class SkipIfConditionGroupStateCompiled : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.ConditionState> desiredConditionGroupState;
-            public EventArg<EventEnum.ConditionGroup> targetConditionGroup;
-            public SkipIfConditionGroupStateCompiled(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfConditionGroupStateCompiled, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                desiredConditionGroupState = (EventArg<EventEnum.ConditionState>)args[1];
-                targetConditionGroup = (EventArg<EventEnum.ConditionGroup>)args[2];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredConditionGroupState, targetConditionGroup }; }
         }
         class EndIfConditionGroupStateCompiled : MyInstr
         {
@@ -5023,23 +5219,6 @@ namespace OopsAllGael
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { desiredFlagState, targetEventFlagType, targetEventFlagId }; }
         }
-        class SkipIfEventFlag : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32 };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.OnOff> desiredFlagState;
-            public EventArg<EventEnum.TargetEventFlagType> targetEventFlagType;
-            public EventArg<int> targetEventFlagId;
-            public SkipIfEventFlag(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfEventFlag, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                desiredFlagState = (EventArg<EventEnum.OnOff>)args[1];
-                targetEventFlagType = (EventArg<EventEnum.TargetEventFlagType>)args[2];
-                targetEventFlagId = (EventArg<int>)args[3];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredFlagState, targetEventFlagType, targetEventFlagId }; }
-        }
         class EndIfEventFlag : MyInstr
         {
             public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32 };
@@ -5056,25 +5235,6 @@ namespace OopsAllGael
                 targetEventFlagId = (EventArg<int>)args[3];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType, desiredFlagState, targetEventFlagType, targetEventFlagId }; }
-        }
-        class SkipIfBatchEventFlags : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.LogicalOperationType> desiredFlagState;
-            public EventArg<EventEnum.TargetEventFlagType> targetEventFlagType;
-            public EventArg<int> startingTargetEventFlagId;
-            public EventArg<int> endingTargetEventFlagId;
-            public SkipIfBatchEventFlags(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfBatchEventFlags, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                desiredFlagState = (EventArg<EventEnum.LogicalOperationType>)args[1];
-                targetEventFlagType = (EventArg<EventEnum.TargetEventFlagType>)args[2];
-                startingTargetEventFlagId = (EventArg<int>)args[3];
-                endingTargetEventFlagId = (EventArg<int>)args[4];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredFlagState, targetEventFlagType, startingTargetEventFlagId, endingTargetEventFlagId }; }
         }
         class EndIfBatchEventFlags : MyInstr
         {
@@ -5095,19 +5255,6 @@ namespace OopsAllGael
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType, desiredFlagState, targetEventFlagType, startingTargetEventFlagId, endingTargetEventFlagId }; }
         }
-        class SkipIfMultiplayerState : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.MultiplayerState> desiredMultiplayerState;
-            public SkipIfMultiplayerState(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfMultiplayerState, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                desiredMultiplayerState = (EventArg<EventEnum.MultiplayerState>)args[1];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredMultiplayerState }; }
-        }
         class EndIfMultiplayerState : MyInstr
         {
             public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte };
@@ -5120,23 +5267,6 @@ namespace OopsAllGael
                 desiredMultiplayerState = (EventArg<EventEnum.MultiplayerState>)args[1];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType, desiredMultiplayerState }; }
-        }
-        class SkipIfPlayerInOutMap : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<bool> shouldPlayerBeInside;
-            public EventArg<byte> areaId;
-            public EventArg<byte> blockId;
-            public SkipIfPlayerInOutMap(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfPlayerInOutMap, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                shouldPlayerBeInside = (EventArg<bool>)args[1];
-                areaId = (EventArg<byte>)args[2];
-                blockId = (EventArg<byte>)args[3];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, shouldPlayerBeInside, areaId, blockId }; }
         }
         class EndIfPlayerInOutMap : MyInstr
         {
@@ -5154,21 +5284,6 @@ namespace OopsAllGael
                 blockId = (EventArg<byte>)args[3];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType, shouldPlayerBeInside, areaId, blockId }; }
-        }
-        class SkipIfNumberOfCoOpClients : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.ComparisonType> comparisonType;
-            public EventArg<byte> targetNumberOfClients;
-            public SkipIfNumberOfCoOpClients(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfNumberOfCoOpClients, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                comparisonType = (EventArg<EventEnum.ComparisonType>)args[1];
-                targetNumberOfClients = (EventArg<byte>)args[2];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, comparisonType, targetNumberOfClients }; }
         }
         class EndIfNumberOfCoOpClients : MyInstr
         {
@@ -5231,23 +5346,6 @@ namespace OopsAllGael
                 isNotIn = (EventArg<bool>)args[1];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType, isNotIn }; }
-        }
-        class SkipIfNumberOfClientsOfType : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.ClientType> clientType;
-            public EventArg<EventEnum.ComparisonType> comparisonType;
-            public EventArg<byte> targetNumberOfClients;
-            public SkipIfNumberOfClientsOfType(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfNumberOfClientsOfType, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                clientType = (EventArg<EventEnum.ClientType>)args[1];
-                comparisonType = (EventArg<EventEnum.ComparisonType>)args[2];
-                targetNumberOfClients = (EventArg<byte>)args[3];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, clientType, comparisonType, targetNumberOfClients }; }
         }
         class GotoIfNumberOfClientsOfType : MyInstr
         {
@@ -5385,27 +5483,6 @@ namespace OopsAllGael
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType, targetEntityId, speffectId, shouldHave, comparisonType, numberOfTargetCharacters }; }
         }
-        class SkipIfCharacterHasSpeffect : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Int32 };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<int> targetEntityId;
-            public EventArg<int> speffectId;
-            public EventArg<bool> shouldHave;
-            public EventArg<EventEnum.ComparisonType> comparisonType;
-            public EventArg<int> numberOfTargetCharacters;
-            public SkipIfCharacterHasSpeffect(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfCharacterHasSpeffect, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                targetEntityId = (EventArg<int>)args[1];
-                speffectId = (EventArg<int>)args[2];
-                shouldHave = (EventArg<bool>)args[3];
-                comparisonType = (EventArg<EventEnum.ComparisonType>)args[4];
-                numberOfTargetCharacters = (EventArg<int>)args[5];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, targetEntityId, speffectId, shouldHave, comparisonType, numberOfTargetCharacters }; }
-        }
         class GotoIfPlayerInOutsideArea : MyInstr
         {
             public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
@@ -5444,25 +5521,6 @@ namespace OopsAllGael
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { executionEndType, desiredState, targetEntityId, areaEntityId, numberOfTargetCharacters }; }
         }
-        class SkipIfPlayerInOutsideArea : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.InsideOutsideState> desiredState;
-            public EventArg<int> targetEntityId;
-            public EventArg<int> areaEntityId;
-            public EventArg<int> numberOfTargetCharacters;
-            public SkipIfPlayerInOutsideArea(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfPlayerInOutsideArea, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                desiredState = (EventArg<EventEnum.InsideOutsideState>)args[1];
-                targetEntityId = (EventArg<int>)args[2];
-                areaEntityId = (EventArg<int>)args[3];
-                numberOfTargetCharacters = (EventArg<int>)args[4];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, desiredState, targetEntityId, areaEntityId, numberOfTargetCharacters }; }
-        }
         class GotoIfHollowArenaMatchType : MyInstr
         {
             public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte };
@@ -5488,25 +5546,6 @@ namespace OopsAllGael
                 targetObjectEntityId = (EventArg<int>)args[1];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { damageState, targetObjectEntityId }; }
-        }
-        class SkipIfObjectDestroyed : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Byte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Single };
-            public EventArg<byte> numberOfSkippedLines;
-            public EventArg<EventEnum.DestructionState> damageState;
-            public EventArg<int> targetObjectEntityId;
-            public EventArg<EventEnum.ComparisonType> comparisonType;
-            public EventArg<float> numberOfTargetObjects;
-            public SkipIfObjectDestroyed(AbstractEventArg[] args, uint? layerMask) : base(InstrType.SkipIfObjectDestroyed, layerMask)
-            {
-                _argTypes = argTypes;
-                numberOfSkippedLines = (EventArg<byte>)args[0];
-                damageState = (EventArg<EventEnum.DestructionState>)args[1];
-                targetObjectEntityId = (EventArg<int>)args[2];
-                comparisonType = (EventArg<EventEnum.ComparisonType>)args[3];
-                numberOfTargetObjects = (EventArg<float>)args[4];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { numberOfSkippedLines, damageState, targetObjectEntityId, comparisonType, numberOfTargetObjects }; }
         }
         class EndIfObjectDestroyed : MyInstr
         {
@@ -6169,23 +6208,6 @@ namespace OopsAllGael
                 disabledEnabled = (EventArg<EventEnum.DisabledEnabled>)args[0];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { disabledEnabled }; }
-        }
-        class DisplayBossHealthBar : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int16, EMEVD.Instruction.ArgType.Int32 };
-            public EventArg<EventEnum.DisabledEnabled> disabledEnabled;
-            public EventArg<int> entityId;
-            public EventArg<short> slotNumber;
-            public EventArg<int> nameId;
-            public DisplayBossHealthBar(AbstractEventArg[] args, uint? layerMask) : base(InstrType.DisplayBossHealthBar, layerMask)
-            {
-                _argTypes = argTypes;
-                disabledEnabled = (EventArg<EventEnum.DisabledEnabled>)args[0];
-                entityId = (EventArg<int>)args[1];
-                slotNumber = (EventArg<short>)args[2];
-                nameId = (EventArg<int>)args[3];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { disabledEnabled, entityId, slotNumber, nameId }; }
         }
         class HandleBossDefeat : MyInstr
         {
@@ -6993,25 +7015,6 @@ namespace OopsAllGael
                 unknown = (EventArg<byte>)args[0];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { unknown }; }
-        }
-        class DisplayDecoratedBossHealthBar : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.SByte, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int16, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Byte };
-            public EventArg<EventEnum.DisabledEnabled> disabledEnabled;
-            public EventArg<int> entityId;
-            public EventArg<short> slotNumber;
-            public EventArg<int> nameId;
-            public EventArg<byte> decorationId;
-            public DisplayDecoratedBossHealthBar(AbstractEventArg[] args, uint? layerMask) : base(InstrType.DisplayDecoratedBossHealthBar, layerMask)
-            {
-                _argTypes = argTypes;
-                disabledEnabled = (EventArg<EventEnum.DisabledEnabled>)args[0];
-                entityId = (EventArg<int>)args[1];
-                slotNumber = (EventArg<short>)args[2];
-                nameId = (EventArg<int>)args[3];
-                decorationId = (EventArg<byte>)args[4];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { disabledEnabled, entityId, slotNumber, nameId, decorationId }; }
         }
         class PlaceNpcSummonSignWorksForNonEmberedPlayers : MyInstr
         {

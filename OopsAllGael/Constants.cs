@@ -85,6 +85,7 @@ namespace OopsAllGael
         public const int GAEL_EVENT_ID = 30000000;
         public const int GAEL_BOSS_EVENT = 30000001;
         public const int GAEL_CAGE_EVENT = 30000002;
+        public const int GAEL_GRAVITY_EVENT = 30000003;
 
         public const int ANIM_OFFSET = 100000;
 

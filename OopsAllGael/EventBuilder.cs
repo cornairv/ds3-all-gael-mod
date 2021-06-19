@@ -85,21 +85,30 @@ namespace OopsAllGael
 
         public EventBuilder Remove()
         {
-            return Remove(out _);
+            return Remove<MyInstr>();
         }
-        public EventBuilder Remove(out EMEVD.Instruction instr)
+        public EventBuilder Remove<T>()
         {
             if (AtEnd)
             {
                 throw new IndexOutOfRangeException();
             }
-            instr = event_.Instructions[cursor];
+            AssertType<T>();
             event_.Parameters.RemoveAll(param => param.InstructionIndex == cursor);
             Util.ShiftParams(event_.Parameters, cursor, -1);
             event_.Instructions.RemoveAt(cursor);
             if (cursor > event_.Instructions.Count)
             {
                 cursor = event_.Instructions.Count;
+            }
+            return this;
+        }
+
+        public EventBuilder AssertType<T>()
+        {
+            if (!(MyInstr.FromInstr(CurrentInstruction) is T))
+            {
+                throw new ArgumentException("Expected " + typeof(T) + ", got " + MyInstr.FromInstr(CurrentInstruction).GetType());
             }
             return this;
         }
@@ -133,10 +142,41 @@ namespace OopsAllGael
         public EventBuilder Modify(Action<MyInstr> act)
         {
             MyInstr myInstr = MyInstr.FromInstr(CurrentInstruction, cursor, event_.Parameters);
+            myInstr.modified = true;
             act(myInstr);
-            Remove();
-            Insert(myInstr.ToInstr(cursor, event_.Parameters, paramCount));
+            if (myInstr.modified)
+            {
+                Remove();
+                Insert(myInstr.ToInstr(cursor, event_.Parameters, paramCount));
+            }
             return this;
+        }
+
+        public EventBuilder ShiftSkips(int count)
+        {
+            ShiftSkips(cursor, count);
+            return this;
+        }
+        public void ShiftSkips(int index, int count)
+        {
+            int currentIndex = cursor;
+            for (int i = index - 1; i >= 0; i--)
+            {
+                Seek(i);
+                Modify(myInstr =>
+                {
+                    myInstr.modified = false;
+                    if (myInstr is InstrWrapper.AbstractSkipEvent instr)
+                    {
+                        if (instr.numberOfSkippedLines.Value >= index - i)
+                        {
+                            instr.numberOfSkippedLines = (byte)(instr.numberOfSkippedLines.Value + count);
+                            instr.modified = true;
+                        }
+                    }
+                });
+            }
+            Seek(currentIndex);
         }
 
         object MakeArgObject<T>(EventArg<T> arg, EMEVD.Instruction.ArgType argType, IEnumerable<object> precedingArgs)

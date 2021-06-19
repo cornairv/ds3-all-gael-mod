@@ -24,12 +24,14 @@ namespace OopsAllGael
             Directory.CreateDirectory(Constants.MOD_DIR + @"sfx");
             Directory.CreateDirectory(Constants.MOD_DIR + @"chr");
             Directory.CreateDirectory(Constants.MOD_DIR + @"action\script");
+            Directory.CreateDirectory(Constants.MOD_DIR + @"remo");
 
             InsertParams();
             ModifyEvents();
             InsertScripts();
             InsertSfx();
             //InsertModels();
+            ModifyCutscenes();
         }
 
         static void InsertScripts()
@@ -76,14 +78,49 @@ namespace OopsAllGael
 
                 // disable second gael until first is dead
                 .Label0()
+                //.SetCharacterTalkRange(gael_phase2, 0)
                 .ChangeCharacterEnableState(gael_phase2, DisabledEnabled.Disabled)
                 .ActivateHit(gael_phase2, DisabledEnabled.Disabled)
+
+                // enable second gael when first is dead
                 .IfCharacterHpRatio(ConditionGroup.Main, gael_phase1, ComparisonType.Equal, 0, ComparisonType.Equal, 1)
                 .WarpCharacterAndCopyFloor(gael_phase2, TargetEntityType.Character, gael_phase1, 260, gael_phase1)
-                .WaitFixedTimeSeconds(5)
+                .WaitFixedTimeSeconds(4)
                 .ChangeCharacterEnableState(gael_phase2, DisabledEnabled.Enabled)
-                .ForceAnimationPlayback(gael_phase2, 3036, false, true, false, 0, 1)
+                //.SetCharacterTalkRange(gael_phase2, 30)
                 .ActivateHit(gael_phase2, DisabledEnabled.Enabled)
+                .ForceAnimationPlayback(gael_phase2, 3036, false, false, false, 0, 1)
+
+                /* too buggy
+                // handle respawning enemies
+                .IfCharacterDeadAlive(ConditionGroup.Main, gael_phase1, DeathState.Alive, ComparisonType.Equal, 1)
+                //.EndIfConditionGroupStateUncompiled(EventEndType.End, ConditionState.Fail, ConditionGroup.Or02)
+                .ChangeCharacterEnableState(gael_phase1, DisabledEnabled.Disabled)
+                .ActivateHit(gael_phase1, DisabledEnabled.Disabled)
+
+                .IfCharacterHpRatio(ConditionGroup.Main, gael_phase2, ComparisonType.Equal, 0, ComparisonType.Equal, 1)
+                .ChangeCharacterEnableState(gael_phase1, DisabledEnabled.Enabled)
+                .ActivateHit(gael_phase1, DisabledEnabled.Enabled)
+                .ForceAnimationPlayback(gael_phase1, 3031, false, false, false, 0, 1)
+                .IfCharacterDeadAlive(ConditionGroup.Main, gael_phase2, DeathState.Alive, ComparisonType.Equal, 1)
+                .EndUnconditionally(EventEndType.Restart)
+                */
+                .Build();
+
+            emevd.Events.Add(newEvent);
+
+
+            newEvent = new EventBuilder()
+                .Event(Constants.GAEL_GRAVITY_EVENT, EMEVD.Event.RestBehaviorType.Restart)
+                .Param(out gael_phase1).Param(out gael_phase2)
+
+                .IfCharacterAiState(ConditionGroup.Or02, gael_phase1, AiStateType.Combat, ComparisonType.Equal, 1)
+                .IfCharacterHpRatio(ConditionGroup.Or02, gael_phase1, ComparisonType.Less, 0.99f, ComparisonType.Equal, 1)
+                .IfConditionGroup(ConditionGroup.Main, ConditionState.Pass, ConditionGroup.Or02)
+                .SetCharacterGravity(gael_phase1, DisabledEnabled.Enabled)
+                .SetCharacterGravity(gael_phase2, DisabledEnabled.Enabled)
+                .SetCharacterMaphit(gael_phase1, false)
+                .SetCharacterMaphit(gael_phase2, false)
                 .Build();
 
             emevd.Events.Add(newEvent);
@@ -95,10 +132,10 @@ namespace OopsAllGael
                 .Param(out gael_phase1).Param(out gael_phase2).Param(out slotNumber).Param(out nameId)
                 .WaitFixedTimeFrames(1)
                 .IfCharacterDeadAlive(ConditionGroup.And01, gael_phase2, DeathState.Alive, ComparisonType.Equal, 1)
+                .IfCharacterDeadAlive(ConditionGroup.And01, gael_phase1, DeathState.Alive, ComparisonType.Equal, 1)
                 .IfCharacterHpRatio(ConditionGroup.And01, gael_phase1, ComparisonType.Equal, 0.0f, ComparisonType.Equal, 1)
                 .IfConditionGroup(ConditionGroup.Main, ConditionState.Pass, ConditionGroup.And01)
-                .WaitFixedTimeSeconds(5)
-                .DisplayBossHealthBar(DisabledEnabled.Disabled, gael_phase1, slotNumber, nameId)
+                .WaitFixedTimeSeconds(4)
                 .DisplayBossHealthBar(DisabledEnabled.Enabled, gael_phase2, slotNumber, nameId)
                 .Build();
 
@@ -144,7 +181,16 @@ namespace OopsAllGael
 
                 foreach (int entityId in enemyEntityIdMap[mapId])
                 {
-                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_EVENT_ID, null, entityId, gaelEntityIds[entityId]);
+                    uint? layerMask = null;
+                    if (entityId == 3100741)
+                    {
+                        layerMask = 0b1111111100;
+                    }
+                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_EVENT_ID, layerMask, entityId, gaelEntityIds[entityId]);
+                    if (!flyingEntityIds.Contains(entityId))
+                    {
+                        startEventBuilder.InitializeCommonEvent(Constants.GAEL_GRAVITY_EVENT, layerMask, entityId, gaelEntityIds[entityId]);
+                    }
                 }
 
                 startEventBuilder.InitializeCommonEvent(Constants.GAEL_CAGE_EVENT, null, 3100710); // undead settlement Cornyx
@@ -156,7 +202,7 @@ namespace OopsAllGael
 
                 for (int j = 0; j < bossGaels.Count; j++)
                 {
-                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_BOSS_EVENT, null, bossGaels[i], gaelEntityIds[bossGaels[i]], bossGaelHpBarSlots[i], bossGaelNameIds[i]);
+                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_BOSS_EVENT, null, bossGaels[j], gaelEntityIds[bossGaels[j]], bossGaelHpBarSlots[j], bossGaelNameIds[j]);
                 }
                 bossGaels.Clear();
                 bossGaelHpBarSlots.Clear();
@@ -216,8 +262,11 @@ namespace OopsAllGael
                     {
                         visitedEvents.Add(eventId.Value);
                         //Console.WriteLine("Warning: skipped event ID " + eventId.Value);
+                        eventBuilder.Seek(0);
                         PostprocessEvent(eventBuilder, eventId.Value);
                     }
+
+                    eventBuilder.Seek(0).ForEach(EventModifier(events, commonEvents, visitedEvents));
 
                     return instr.modified;
                 }
@@ -231,10 +280,35 @@ namespace OopsAllGael
             string filename = @"sfx\frpg_sfxbnd_commoneffects_effect.ffxbnd.dcx";
             BND4 common_sfx_bnd = BND4.Read(filename);
             BND4 gael_sfx_bnd = BND4.Read(@"sfx\frpg_sfxbnd_m51_effect.ffxbnd.dcx");
+
+            // remove annoying clouds
+            BinderFile sfx = gael_sfx_bnd.Files.Find(f => f.Name.EndsWith("f000000120.fxr"));
+            FXR3 fxr = FXR3.Read(sfx.Bytes);
+            //fxr.Section1Tree.Section2s.Clear();
+            //fxr.Section4Tree.Section4s.Clear();
+            fxr.Section4Tree.Section4s.Clear();
+            sfx.Bytes = fxr.Write();
+
             common_sfx_bnd.Files.InsertRange(0, gael_sfx_bnd.Files);
             common_sfx_bnd.Write(Constants.MOD_DIR + filename);
         }
 
- 
+        static void ModifyCutscenes()
+        {
+            byte[] replacementUnicode = Encoding.Unicode.GetBytes("c6201");
+            byte[] replacementUTF8 = Encoding.UTF8.GetBytes("c6201");
+            foreach (string filename in Directory.GetFiles("remo"))
+            {
+                if (!filename.EndsWith(".remobnd.dcx")) continue;
+
+                DCX.Type compressionType;
+                byte[] dcx = DCX.Decompress(filename, out compressionType);
+                Util.ReplaceCXXXXInByteArray(dcx, replacementUnicode);
+                Util.ReplaceCXXXXInByteArray(dcx, replacementUTF8);
+                //Util.ReplaceCXXXXInByteArray(dcx, replacementUnicode, 'o');
+                //Util.ReplaceCXXXXInByteArray(dcx, replacementUTF8, 'o');
+                DCX.Compress(dcx, compressionType, Constants.MOD_DIR + filename);
+            }
+        }
     }
 }

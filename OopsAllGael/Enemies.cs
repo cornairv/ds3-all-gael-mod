@@ -14,6 +14,7 @@ namespace OopsAllGael
         static Dictionary<int, int> gaelEntityIds = new Dictionary<int, int>(); // gael phase 1 id => gael phase 2 id
         static HashSet<int> friendlyEntityIds = new HashSet<int>();
         static HashSet<int> allEntityIds = new HashSet<int>();
+        static HashSet<int> flyingEntityIds = new HashSet<int>();
         static Dictionary<string, List<int>> enemyEntityIdMap = new Dictionary<string, List<int>>(); // map id => gael ids
 
         static Dictionary<int, int> npcParamIds = new Dictionary<int, int>();
@@ -23,13 +24,13 @@ namespace OopsAllGael
         static HashSet<int> modelIds = new HashSet<int>(); 
         static HashSet<int> animIds = new HashSet<int>();
         static Dictionary<int, int> npcParamIdToAnimId = new Dictionary<int, int>();
+        static int newEntityIdCounter = 100000000;
 
         static void InsertEnemies()
         {
             // Extract Gael info
             MSB3 gael_msb = MSB3.Read(@"map\mapstudio\m51_01_00_00.msb.dcx");
             List<MSB3.Model.Enemy> gael_models = gael_msb.Models.Enemies.FindAll(model => model.Name == "c6201" || model.Name == "c6200");
-            int newEnemyIdCounter = 100000000;
             // Make every enemy Gael
             foreach (string mapId in Constants.MAP_IDS)
             {
@@ -38,14 +39,24 @@ namespace OopsAllGael
                 msb.Models.Enemies.AddRange(gael_models);
                 List<MSB3.Part.Enemy> new_gaels = new List<MSB3.Part.Enemy>();
                 enemyEntityIdMap[mapId] = new List<int>();
+                Dictionary<string, string> gaelNames = new Dictionary<string, string>();
 
                 for (int i = 0; i < msb.Parts.Enemies.Count; i++)
                 {
                     MSB3.Part.Enemy enemy = msb.Parts.Enemies[i];
+                    if (allEntityIds.Contains(enemy.EntityID) && enemy.EntityID != -1)
+                    {
+                        Console.WriteLine("Warning: duplicate entity ID " + enemy.EntityID);
+                    }
                     allEntityIds.Add(enemy.EntityID);
 
-                    // dragon
-                    if (enemy.EntityID == 3000850)
+                    // dragons
+                    if (enemy.EntityID == 3000850 || enemy.EntityID == 3010830 || enemy.EntityID == 3010831)
+                    {
+                        //continue;
+                    }
+                    // ballista
+                    else if (enemy.EntityID == 3800100)
                     {
                         continue;
                     }
@@ -54,18 +65,31 @@ namespace OopsAllGael
                     TeamType team = (TeamType)Util.GetCellValue<byte>(npc_params[enemy.NPCParamID], "subTeamType");
                     if (enemy.ThinkParamID == 0 || team == TeamType.Object)// || Array.FindIndex(enemy_types_to_replace, t => t == team) == -1)
                     {
-                        if (enemy.EntityID != 522304) // deacon above elevator
+                        switch (enemy.EntityID)
                         {
-                            continue;
+                            case 3500586: // deacon above elevator
+                            case 3500850: // rosaria
+                            case 3500668: // grub near Rosaria
+                            case 3500669: // grub next to Rosaria
+                            case 5100890: // fillianore
+                            case 5100810: // judicator
+                            case 5000705: // dreg heap hag
+                            case 4500705: // painter 1
+                            case 4500706: // painter 2
+                            case 3900470: // profane capital flame bowl
+                            case 3100196: // arrow firing entity
+                                break;
+                            default:
+                                continue;
                         }
                     }
                     if (enemy.EntityID == -1)
                     {
-                        enemy.EntityID = newEnemyIdCounter++;
+                        enemy.EntityID = newEntityIdCounter++;
                     }
 
                     bool isFriendly = team == TeamType.Ally || team == TeamType.CoOp || team == TeamType.CoOpNpc || team == TeamType.WhitePhantom || team == TeamType.Human || team == TeamType.FriendlyNpc;
-                    TeamType newTeam = isFriendly ? team : TeamType.StrongEnemy;
+                    //TeamType newTeam = isFriendly ? team : TeamType.StrongEnemy;
 
                     if (isFriendly)
                     {
@@ -92,7 +116,7 @@ namespace OopsAllGael
 
                     npcParamIds[enemy.NPCParamID] = enemy.NPCParamID + 1000000;
                     charaInitIds.Add(enemy.CharaInitID);
-                    if (enemy.ThinkParamID != 620000 && enemy.ThinkParamID != 620100 && !isFriendly)
+                    if (!isFriendly && enemy.ThinkParamID != Constants.GAEL_PHASE2_PARAM_ID)
                         thinkParamIds.Add(enemy.ThinkParamID);
                     modelIds.Add(modelId);
                     animIds.Add(animId);
@@ -103,16 +127,52 @@ namespace OopsAllGael
                         enemy.Position = new Vector3(enemy.Position.X - 5, enemy.Position.Y, enemy.Position.Z + 5);
                     }
 
+                    // butterflies
+                    if (enemy.NPCParamID == 308000)
+                    {
+                        //flyingEntityIds.Add(enemy.EntityID);
+                    }
+
+                    // gravetender greatwolf
+                    if (enemy.EntityID == 4500861)
+                    {
+                        enemy.Position = new Vector3(enemy.Position.X + 7, enemy.Position.Y, enemy.Position.Z);
+                    }
+
+                    // midir
+                    if (enemy.EntityID == 5100200)
+                    {
+                        enemy.Position = new Vector3(enemy.Position.X - 5, enemy.Position.Y + 1, enemy.Position.Z + 5);
+                    }
+
+                    // siegward rats
+                    if (enemy.EntityID == 3900307)
+                    {
+                        enemy.Position = new Vector3(167.913f, -361.557f, -834.374f);
+                    }
+                    else if (enemy.EntityID == 3900306)
+                    {
+                        enemy.Position = new Vector3(168.803f, -361.527f, -828.895f);
+                    }
+                    else if (enemy.EntityID == 3900304)
+                    {
+                        enemy.Position = new Vector3(159.599f, -361.754f, -820.507f);
+                    }
+                    else if (enemy.EntityID == 3900305)
+                    {
+                        new Vector3(163.688f, -361.754f, -821.579f);
+                    }
+
                     enemy.ModelName = "c6201";
                     enemy.CharaInitID = -1;
 
                     // add a phase 2 Gael
                     MSB3.Part.Enemy phase2Gael = Util.CopyEnemy(enemy);
-                    phase2Gael.EntityID = newEnemyIdCounter++;
+                    phase2Gael.EntityID = newEntityIdCounter++;
                     phase2Gael.ModelName = "c6200";
                     phase2Gael.NPCParamID = npcParamIds[enemy.NPCParamID];
                     phase2Gael.Name = enemy.Name + " (2)";
-                    phase2Gael.ThinkParamID = 620000;
+                    phase2Gael.ThinkParamID = Constants.GAEL_PHASE2_PARAM_ID;
                     phase2Gael.TalkID = 0;
                     phase2Gael.CharaInitID = enemy.CharaInitID;
                     new_gaels.Add(phase2Gael);
@@ -126,6 +186,7 @@ namespace OopsAllGael
                         Console.WriteLine("Warning: gael2 entity ID collision: " + phase2Gael.EntityID);
                     }
                     gaelEntityIds[enemy.EntityID] = phase2Gael.EntityID;
+                    gaelNames[enemy.Name] = phase2Gael.Name;
                     enemyEntityIdMap[mapId].Add(enemy.EntityID);
                 }
 
@@ -142,15 +203,86 @@ namespace OopsAllGael
                         eventRegion.Position = new Vector3(eventRegion.Position.X + normal.X * d, eventRegion.Position.Y, eventRegion.Position.Z + normal.Z * d);
                     }
 
-                    if (eventRegion.EntityID >= 3102570 && eventRegion.EntityID <= 3102571) // rat spawners near Morne
+                    else if (eventRegion.EntityID >= 3102570 && eventRegion.EntityID <= 3102571) // rat spawners near Morne
                     {
                         eventRegion.Position = new Vector3(eventRegion.Position.X, eventRegion.Position.Y, eventRegion.Position.Z + 2.5f);
                     }
+
+                    else if (eventRegion.Name == "【生成ポイント】犬ネズミ_巣穴A") // rat spawners near Siegward
+                    {
+                        eventRegion.Position = new Vector3(159.599f, -361.754f, -820.507f);
+                        Console.WriteLine(eventRegion.Name);
+                    }
+                    else if (eventRegion.Name == "【生成ポイント】犬ネズミ_巣穴C")
+                    {
+                        eventRegion.Position = new Vector3(167.913f, -361.557f, -834.374f);
+                        Console.WriteLine(eventRegion.Name);
+                    }
+                    else if (eventRegion.Name == "【生成ポイント】犬ネズミ_巣穴B")
+                    {
+                        eventRegion.Position = new Vector3(168.803f, -361.527f, -828.895f);
+                        Console.WriteLine(eventRegion.Name);
+                    }
+
+                    else if (eventRegion.EntityID == 3002600)
+                    {
+                        eventRegion.Position = new Vector3(-124.349f, 36.141f, 9.454f);
+                    }
                 }
+
+                // add gael 2 to spawn generators
+                List<MSB3.Event.Generator> gael2Generators = new List<MSB3.Event.Generator>();
+                for (int i = 0; i < msb.Events.Generators.Count; i++)
+                {
+                    MSB3.Event.Generator generator = msb.Events.Generators[i];
+                    MSB3.Event.Generator newGenerator = null;
+                    int currentGael = 0;
+                    for (int j = 0; j < generator.SpawnPartNames.Length; j++)
+                    {
+                        string name = generator.SpawnPartNames[j];
+                        if (name != null && gaelNames.ContainsKey(name))
+                        {
+                            //generator.SpawnPartNames[j] = null; // just disable respawning Gaels
+                            if (generator.MinInterval < 6)
+                                generator.MinInterval = 6;
+                            if (generator.MaxInterval < 6)
+                                generator.MaxInterval = 6;
+                            /* too buggy
+                            if (newGenerator == null)
+                                newGenerator = CreateGael2Generator(generator);
+                            newGenerator.SpawnPartNames[currentGael++] = gaelNames[name];
+                            */
+                        }
+                    }
+
+                    if (newGenerator != null)
+                        gael2Generators.Add(newGenerator);
+                }
+                msb.Events.Generators.AddRange(gael2Generators);
 
                 msb.Parts.Enemies.AddRange(new_gaels);
                 msb.Write(Constants.MOD_DIR + msbFilename);
             }
+        }
+
+        static MSB3.Event.Generator CreateGael2Generator(MSB3.Event.Generator generator)
+        {
+            MSB3.Event.Generator newGenerator = (MSB3.Event.Generator)generator.DeepCopy();
+            newGenerator.EntityID = newEntityIdCounter++;
+            newGenerator.MaxInterval = 6;
+            newGenerator.MinInterval = 6;
+            /*
+            newGenerator.InitialSpawnCount = 255;
+            newGenerator.LimitNum = 9999;
+            newGenerator.MinGenNum = 9999;
+            newGenerator.MaxGenNum = 9999;
+            */
+            newGenerator.Name += " (2)";
+            for (int i = 0; i < newGenerator.SpawnPartNames.Length; i++)
+            {
+                newGenerator.SpawnPartNames[i] = null;
+            }
+            return newGenerator;
         }
     }
 }

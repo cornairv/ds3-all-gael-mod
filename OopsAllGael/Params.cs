@@ -40,10 +40,6 @@ namespace OopsAllGael
                 PARAM.Row myGaelPhase1Row = Util.CopyRow(gaelPhase1Row, paramdef);
                 myGaelPhase1Row.ID = Constants.MY_GAEL_PHASE1_PARAM_ID;
                 myGaelPhase1Row.Name = "gael1";
-                List<int> gaelSpEffectIds = new List<PARAM.Cell>(gaelPhase1Row.Cells)
-                    .FindAll(cell => cell.Def.DisplayName.StartsWith("spEffectId"))
-                    .Select(cell => (int)cell.Value)
-                    .ToList();
                 Util.SetCellValue(myGaelPhase1Row, "disableIntiliazeDead", true);
                 Util.SetCellValue(myGaelPhase1Row, "disableRespawn", false);
 
@@ -67,46 +63,54 @@ namespace OopsAllGael
                 {
                     if (!npcParamIds.ContainsKey(row.ID)) continue;
                     row.Name = "edit";
-                    int gaelSpEffectIndex = 0;
                     PARAM.Row phase2Row = Util.CopyRow(row, paramdef);
                     phase2Row.ID = npcParamIds[row.ID];
+
+                    int npcSpEffectIndex = 0;
+                    List<int> npcSpEffectIds = new List<PARAM.Cell>(row.Cells)
+                        .FindAll(cell => cell.Def.DisplayName.StartsWith("spEffectId"))
+                        .Select(cell => (int)cell.Value)
+                        .Where(spEffectId => spEffectId != 0)
+                        .ToList();
 
                     for (int i = 0; i < row.Cells.Count; i++)
                     {
                         PARAM.Cell cell = row.Cells[i];
                         switch (cell.Def.DisplayName)
                         {
-                            case "humanityLotId":
                             case "PhantomParamId":
                             case "TextId":
                             case "subPhantomParamId":
                             case "npcType":
                             case "subNpcType":
-                            case "isSoulGetByBoss":
+                            case "NameId":
                             case "disableRespawn": // buggy wandering NPCs if this isn't included
                                 // keep original enemy's values
                                 break;
                             case "teamType":
                             case "subTeamType":
-                                if (!Constants.FRIENDLY_TEAMS.Contains((TeamType)(byte)cell.Value))
+                                TeamType team = (TeamType)(byte)cell.Value;
+                                if (!Constants.FRIENDLY_TEAMS.Contains(team) && team != TeamType.Indiscriminate)
                                 {
+
                                     cell.Value = TeamType.StrongEnemy;
                                 }
                                 break;
+                            /*
+                            case string name when name.StartsWith("spEffectId"):
+                                if ((int)cell.Value == 0 && npcSpEffectIndex < npcSpEffectIds.Count)
+                                {
+                                    cell.Value = npcSpEffectIds[npcSpEffectIndex++];
+                                }
+                                break;
+                            */
                             default:
                                 cell.Value = myGaelPhase1Row.Cells[i].Value;
                                 break;
                         }
-                        /*
-                        else if (cell.Def.DisplayName.StartsWith("spEffectId"))
-                        {
-                            if ((int)cell.Value == 0 && gaelSpEffectIndex < gaelSpEffectIds.Count)
-                            {
-                                cell.Value = gaelSpEffectIds[gaelSpEffectIndex++];
-                            }
-                        }
-                        */
                     }
+
+                    npcSpEffectIndex = 0;
                     for (int i = 0; i < phase2Row.Cells.Count; i++)
                     {
                         PARAM.Cell cell = phase2Row.Cells[i];
@@ -121,17 +125,27 @@ namespace OopsAllGael
                             case "subNpcType":
                             case "getSoul":
                             case "disableRespawn":
+                            case "NameId":
                             case "disableIntiliazeDead":
                             case "isSoulGetByBoss":
                                 // keep original enemy's values
                                 break;
                             case "teamType":
                             case "subTeamType":
-                                if (!Constants.FRIENDLY_TEAMS.Contains((TeamType)(byte)cell.Value))
+                                TeamType team = (TeamType)(byte)cell.Value;
+                                if (!Constants.FRIENDLY_TEAMS.Contains(team) && team != TeamType.Indiscriminate)
                                 {
                                     cell.Value = TeamType.StrongEnemy;
                                 }
                                 break;
+                            /*
+                            case string name when name.StartsWith("spEffectId"):
+                                if ((int)cell.Value == 0 && npcSpEffectIndex < npcSpEffectIds.Count)
+                                {
+                                    cell.Value = npcSpEffectIds[npcSpEffectIndex++];
+                                }
+                                break;
+                            */
                             default:
                                 cell.Value = myGaelPhase2Row.Cells[i].Value;
                                 break;
@@ -182,7 +196,7 @@ namespace OopsAllGael
                             //case "logicId":
                             case string name0 when name0.EndsWith("_dist"):
                             case string name1 when name1.EndsWith("Dark"):
-                            case string name4 when name4.StartsWith("callHelp_") && !name4.Contains("Action"):
+                            //case string name4 when name4.StartsWith("callHelp_") && !name4.Contains("Action"):
                             case "teamAttackEffectivity":
                             case "nonBattleActLife":
                             case "BattleStartDist":
@@ -200,6 +214,7 @@ namespace OopsAllGael
                 tmpBndf.Bytes = param.Write();
             }
 
+            /*
             {
                 BinderFile tmpBndf = bnd.Files.Find(bndf => bndf.Name.EndsWith("CharaInitParam.param")) ?? throw new KeyNotFoundException();
                 PARAM param = PARAM.Read(tmpBndf.Bytes);
@@ -228,6 +243,7 @@ namespace OopsAllGael
 
                 tmpBndf.Bytes = param.Write();
             }
+            */
 
             {
                 // load action button params
@@ -239,6 +255,47 @@ namespace OopsAllGael
 
                 PARAM.Row gundyrRow = param.Rows.Find(row => row.ID == 8900) ?? throw new KeyNotFoundException();
                 Util.SetCellValue(gundyrRow, "Radius", 8);
+
+                tmpBndf.Bytes = param.Write();
+            }
+
+            {
+                // load action button params
+                BinderFile tmpBndf = bnd.Files.Find(bndf => bndf.Name.EndsWith("ActionButtonParam.param")) ?? throw new KeyNotFoundException();
+                PARAM param = PARAM.Read(tmpBndf.Bytes);
+                string paramdefFile = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "ACTIONBUTTON_PARAM_ST.xml");
+                PARAMDEF paramdef = PARAMDEF.XmlDeserialize(paramdefFile);
+                param.ApplyParamdef(paramdef);
+
+                PARAM.Row gundyrRow = param.Rows.Find(row => row.ID == 8900) ?? throw new KeyNotFoundException();
+                Util.SetCellValue(gundyrRow, "Radius", 8);
+
+                tmpBndf.Bytes = param.Write();
+            }
+
+            {
+                // boss souls params
+                BinderFile tmpBndf = bnd.Files.Find(bndf => bndf.Name.EndsWith("GameAreaParam.param")) ?? throw new KeyNotFoundException();
+                PARAM param = PARAM.Read(tmpBndf.Bytes);
+                string paramdefFile = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "GAME_AREA_PARAM_ST.xml");
+                PARAMDEF paramdef = PARAMDEF.XmlDeserialize(paramdefFile);
+                param.ApplyParamdef(paramdef);
+
+                foreach (PARAM.Row row in param.Rows)
+                {
+                    row.Name = "edit";
+                    for (int i = 0; i < row.Cells.Count; i++)
+                    {
+                        PARAM.Cell cell = row.Cells[i];
+                        switch (cell.Def.DisplayName)
+                        {
+                            case "BonusSoul_single":
+                            case "BonusSoul_multi":
+                                cell.Value = 120000;
+                                break;
+                        }
+                    }
+                }
 
                 tmpBndf.Bytes = param.Write();
             }
