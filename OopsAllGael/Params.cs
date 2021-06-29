@@ -12,7 +12,8 @@ namespace OopsAllGael
 {
     partial class Gaelifier
     {
-            static void InsertParams()
+        static bool aggressive = true;
+        static void InsertParams()
         {
             string filename = "Data0.bdt";
             BND4 bnd = SFUtil.DecryptDS3Regulation(filename);
@@ -61,6 +62,18 @@ namespace OopsAllGael
 
                 foreach (PARAM.Row row in param.Rows)
                 {
+                    if (row.ID == 148000 || row.ID == 149000) // irithyll ghosts
+                    {
+                        Util.SetCellValue(row, "normalChangeModelId", 6201);
+                        //Util.SetCellValue(row, "normalChangeTexChrId", 1480);
+                        //Util.SetCellValue(row, "normalChangeAnimChrId", 6201);
+                        Util.SetCellValue(row, "ModelDispMask0", true);
+                        Util.SetCellValue(row, "ModelDispMask1", true);
+                        Util.SetCellValue(row, "ModelDispMask2", true);
+                        Util.SetCellValue(row, "ModelDispMask4", true);
+                        Util.SetCellValue(row, "ModelDispMask5", true);
+                        Util.SetCellValue(row, "ModelDispMask6", true);
+                    }
                     if (!npcParamIds.ContainsKey(row.ID)) continue;
                     row.Name = "edit";
                     PARAM.Row phase2Row = Util.CopyRow(row, paramdef);
@@ -123,7 +136,6 @@ namespace OopsAllGael
                             case "subPhantomParamId":
                             case "npcType":
                             case "subNpcType":
-                            case "getSoul":
                             case "disableRespawn":
                             case "NameId":
                             case "disableIntiliazeDead":
@@ -137,6 +149,9 @@ namespace OopsAllGael
                                 {
                                     cell.Value = TeamType.StrongEnemy;
                                 }
+                                break;
+                            case "getSoul":
+                                cell.Value = 120000;
                                 break;
                             /*
                             case string name when name.StartsWith("spEffectId"):
@@ -179,6 +194,8 @@ namespace OopsAllGael
                         PARAM.Cell cell = row.Cells[i];
                         switch (cell.Def.DisplayName)
                         {
+                            case string _ when aggressive:
+                                goto default;
                             /*
                             case "logicId":
                             case string name when name.ToLower().Contains("home"):
@@ -260,20 +277,6 @@ namespace OopsAllGael
             }
 
             {
-                // load action button params
-                BinderFile tmpBndf = bnd.Files.Find(bndf => bndf.Name.EndsWith("ActionButtonParam.param")) ?? throw new KeyNotFoundException();
-                PARAM param = PARAM.Read(tmpBndf.Bytes);
-                string paramdefFile = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "ACTIONBUTTON_PARAM_ST.xml");
-                PARAMDEF paramdef = PARAMDEF.XmlDeserialize(paramdefFile);
-                param.ApplyParamdef(paramdef);
-
-                PARAM.Row gundyrRow = param.Rows.Find(row => row.ID == 8900) ?? throw new KeyNotFoundException();
-                Util.SetCellValue(gundyrRow, "Radius", 8);
-
-                tmpBndf.Bytes = param.Write();
-            }
-
-            {
                 // boss souls params
                 BinderFile tmpBndf = bnd.Files.Find(bndf => bndf.Name.EndsWith("GameAreaParam.param")) ?? throw new KeyNotFoundException();
                 PARAM param = PARAM.Read(tmpBndf.Bytes);
@@ -291,7 +294,7 @@ namespace OopsAllGael
                         {
                             case "BonusSoul_single":
                             case "BonusSoul_multi":
-                                cell.Value = 120000;
+                                cell.Value = 0;// 120000;
                                 break;
                         }
                     }

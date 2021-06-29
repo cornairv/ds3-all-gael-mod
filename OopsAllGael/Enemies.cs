@@ -26,6 +26,9 @@ namespace OopsAllGael
         static Dictionary<int, int> npcParamIdToAnimId = new Dictionary<int, int>();
         static int newEntityIdCounter = 100000000;
 
+        static HashSet<int> startEnabledEnemies = new HashSet<int>();
+
+
         static void InsertEnemies()
         {
             // Extract Gael info
@@ -50,19 +53,9 @@ namespace OopsAllGael
                     }
                     allEntityIds.Add(enemy.EntityID);
 
-                    // dragons
-                    if (enemy.EntityID == 3000850 || enemy.EntityID == 3010830 || enemy.EntityID == 3010831)
-                    {
-                        //continue;
-                    }
-                    // ballista
-                    else if (enemy.EntityID == 3800100)
-                    {
-                        continue;
-                    }
-
-
                     TeamType team = (TeamType)Util.GetCellValue<byte>(npc_params[enemy.NPCParamID], "subTeamType");
+                    bool isFriendly = team == TeamType.Ally || team == TeamType.CoOp || team == TeamType.CoOpNpc || team == TeamType.WhitePhantom || team == TeamType.Human || team == TeamType.FriendlyNpc;
+
                     if (enemy.ThinkParamID == 0 || team == TeamType.Object)// || Array.FindIndex(enemy_types_to_replace, t => t == team) == -1)
                     {
                         switch (enemy.EntityID)
@@ -77,9 +70,15 @@ namespace OopsAllGael
                             case 4500705: // painter 1
                             case 4500706: // painter 2
                             case 3900470: // profane capital flame bowl
-                            case 3100196: // arrow firing entity
+                            //case 3100196: // arrow firing entity
+                            case 4100200: // kiln soldier
+                            case 5110200: // crusty fillianore
+                            case 3300561: // stray demon (?)
+                                Console.WriteLine("Override unthinking enemy: " + mapId + ": " + enemy.Name + ", " + enemy.EntityID);
                                 break;
                             default:
+                                if (enemy.ModelName != "c1000" && enemy.ModelName != "c0100" && enemy.ModelName != "c0000")
+                                    Console.WriteLine("Unthinking enemy: " + mapId + ": " + enemy.Name + ", " + enemy.EntityID);
                                 continue;
                         }
                     }
@@ -88,15 +87,29 @@ namespace OopsAllGael
                         enemy.EntityID = newEntityIdCounter++;
                     }
 
-                    bool isFriendly = team == TeamType.Ally || team == TeamType.CoOp || team == TeamType.CoOpNpc || team == TeamType.WhitePhantom || team == TeamType.Human || team == TeamType.FriendlyNpc;
-                    //TeamType newTeam = isFriendly ? team : TeamType.StrongEnemy;
+
+                    if (!isFriendly)
+                    {
+                        startEnabledEnemies.Add(enemy.EntityID);
+                    }
+
+                    // dragons
+                    if (enemy.EntityID == 3000850 || enemy.EntityID == 3010830 || enemy.EntityID == 3010831)
+                    {
+
+                    }
+                    // ballista
+                    else if (enemy.EntityID == 3800100)
+                    {
+                        startEnabledEnemies.Remove(enemy.EntityID);
+                        continue;
+                    }
 
                     if (isFriendly)
                     {
                         friendlyEntityIds.Add(enemy.EntityID);
                         friendlyThinkParamIds.Add(enemy.ThinkParamID);
                     }
-                    //if (enemy.ModelName != "c2021") continue;
 
                     int modelId = Util.GetCellValue<short>(npc_params[enemy.NPCParamID], "normalChangeModelId");
                     if (modelId == -1)
@@ -160,11 +173,34 @@ namespace OopsAllGael
                     }
                     else if (enemy.EntityID == 3900305)
                     {
-                        new Vector3(163.688f, -361.754f, -821.579f);
+                        enemy.Position = new Vector3(163.688f, -361.754f, -821.579f);
+                    }
+
+                    // horace (can fall through floor)
+                    if (enemy.EntityID == 3300715)
+                    {
+                        enemy.Position = new Vector3(-15.522f, -236.421f, -551.041f);
+                    }
+
+                    // gravetender wolves
+                    if (Array.FindIndex(enemy.EntityGroups, groupId =>
+                        groupId == 4505860 || // gravetender
+                        groupId == 3305800    // abyss watchers
+                        ) != -1)
+                    {
+                        startEnabledEnemies.Remove(enemy.EntityID);
+                    }
+
+                    // sirris, anri combat AI
+                    if (enemy.EntityID == 3100726 || enemy.EntityID == 3700160 || enemy.EntityID == 3700707)
+                    {
+                        enemy.ThinkParamID = Constants.GAEL_PHASE1_PARAM_ID;
                     }
 
                     enemy.ModelName = "c6201";
                     enemy.CharaInitID = -1;
+                    if (enemy.ThinkParamID == Constants.GAEL_PHASE2_PARAM_ID)
+                        enemy.ThinkParamID = Constants.GAEL_PHASE1_PARAM_ID;
 
                     // add a phase 2 Gael
                     MSB3.Part.Enemy phase2Gael = Util.CopyEnemy(enemy);
@@ -224,9 +260,13 @@ namespace OopsAllGael
                         Console.WriteLine(eventRegion.Name);
                     }
 
-                    else if (eventRegion.EntityID == 3002600)
+
+                    else if (eventRegion.EntityID == 3002600) // high wall dragon
                     {
-                        eventRegion.Position = new Vector3(-124.349f, 36.141f, 9.454f);
+                        if (!aggressive)
+                        {
+                            eventRegion.Position = new Vector3(-124.349f, 36.141f, 9.454f);
+                        }
                     }
                 }
 

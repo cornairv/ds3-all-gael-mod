@@ -22,8 +22,8 @@ namespace OopsAllGael
             Directory.CreateDirectory(Constants.MOD_DIR + @"script");
             Directory.CreateDirectory(Constants.MOD_DIR + @"map\mapstudio");
             Directory.CreateDirectory(Constants.MOD_DIR + @"sfx");
-            Directory.CreateDirectory(Constants.MOD_DIR + @"chr");
-            Directory.CreateDirectory(Constants.MOD_DIR + @"action\script");
+            //Directory.CreateDirectory(Constants.MOD_DIR + @"chr");
+            //Directory.CreateDirectory(Constants.MOD_DIR + @"action\script");
             Directory.CreateDirectory(Constants.MOD_DIR + @"remo");
 
             InsertParams();
@@ -61,12 +61,18 @@ namespace OopsAllGael
         {
             EventArg<int> gael_phase1;
             EventArg<int> gael_phase2;
+            EventArg<int> startEnabled;
             EMEVD.Event newEvent = new EventBuilder()
                 .Event(Constants.GAEL_EVENT_ID, EMEVD.Event.RestBehaviorType.Restart)
-                .Param(out gael_phase1).Param(out gael_phase2)
+                .Param(out gael_phase1).Param(out gael_phase2).Param(out startEnabled)
 
                 // disable first Gael if second is dead
                 .WaitFixedTimeFrames(1)
+
+                .SkipIfComparison(2, ComparisonType.Equal, 0, startEnabled) // force to start enabled
+                .SetCharacterAiState(gael_phase1, DisabledEnabled.Enabled)
+                .SetCharacterAiState(gael_phase2, DisabledEnabled.Enabled)
+
                 .IfCharacterDeadAlive(ConditionGroup.Or01, gael_phase1, DeathState.Dead, ComparisonType.Equal, 1)
                 .IfCharacterDeadAlive(ConditionGroup.Or01, gael_phase2, DeathState.Dead, ComparisonType.Equal, 1)
                 .GotoIfConditionGroupStateUncompiled(Label.Label0, ConditionState.Fail, ConditionGroup.Or01)
@@ -179,20 +185,6 @@ namespace OopsAllGael
                     .Event(startEvent, 0)
                     .ForEach(EventModifier(events, commonEvents, visitedEvents));
 
-                foreach (int entityId in enemyEntityIdMap[mapId])
-                {
-                    uint? layerMask = null;
-                    if (entityId == 3100741)
-                    {
-                        layerMask = 0b1111111100;
-                    }
-                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_EVENT_ID, layerMask, entityId, gaelEntityIds[entityId]);
-                    if (!flyingEntityIds.Contains(entityId))
-                    {
-                        startEventBuilder.InitializeCommonEvent(Constants.GAEL_GRAVITY_EVENT, layerMask, entityId, gaelEntityIds[entityId]);
-                    }
-                }
-
                 startEventBuilder.InitializeCommonEvent(Constants.GAEL_CAGE_EVENT, null, 3100710); // undead settlement Cornyx
 
 
@@ -203,6 +195,20 @@ namespace OopsAllGael
                 for (int j = 0; j < bossGaels.Count; j++)
                 {
                     startEventBuilder.InitializeCommonEvent(Constants.GAEL_BOSS_EVENT, null, bossGaels[j], gaelEntityIds[bossGaels[j]], bossGaelHpBarSlots[j], bossGaelNameIds[j]);
+                }
+                foreach (int entityId in enemyEntityIdMap[mapId])
+                {
+                    uint? layerMask = null;
+                    if (entityId == 3100741)
+                    {
+                        layerMask = 0b1111111100; // hodrick event
+                    }
+                    int startEnabled = aggressive && startEnabledEnemies.Contains(entityId) ? 1 : 0;
+                    startEventBuilder.InitializeCommonEvent(Constants.GAEL_EVENT_ID, layerMask, entityId, gaelEntityIds[entityId], startEnabled);
+                    if (!flyingEntityIds.Contains(entityId))
+                    {
+                        startEventBuilder.InitializeCommonEvent(Constants.GAEL_GRAVITY_EVENT, layerMask, entityId, gaelEntityIds[entityId]);
+                    }
                 }
                 bossGaels.Clear();
                 bossGaelHpBarSlots.Clear();
@@ -295,18 +301,61 @@ namespace OopsAllGael
 
         static void ModifyCutscenes()
         {
-            byte[] replacementUnicode = Encoding.Unicode.GetBytes("c6201");
-            byte[] replacementUTF8 = Encoding.UTF8.GetBytes("c6201");
+            byte[] gael1Unicode = Encoding.Unicode.GetBytes("c6201");
+            byte[] gael1UTF8 = Encoding.UTF8.GetBytes("c6201");
+            byte[] gael2Unicode = Encoding.Unicode.GetBytes("c6200");
+            byte[] gael2UTF8 = Encoding.UTF8.GetBytes("c6200");
+            byte[] yhormUnicode = Encoding.Unicode.GetBytes("c5260");
+            byte[] yhormUTF8 = Encoding.UTF8.GetBytes("c5260");
+            byte[] fillianoreUnicode = Encoding.Unicode.GetBytes("c6310");
+            byte[] fillianoreUTF8 = Encoding.UTF8.GetBytes("c6310");
+            byte[] demonUnicode = Encoding.Unicode.GetBytes("o007010");
+            byte[] demonUTF8 = Encoding.UTF8.GetBytes("o007010");
+            byte[] notDemonUnicode = Encoding.Unicode.GetBytes("o000708");
+            byte[] notDemonUTF8 = Encoding.UTF8.GetBytes("o000708");
+            byte[] lorianUnicode = Encoding.Unicode.GetBytes("o302596");
+            byte[] lorianUTF8 = Encoding.UTF8.GetBytes("o302596");
+            byte[] notLorianUnicode = Encoding.Unicode.GetBytes("o304854");
+            byte[] notLorianUTF8 = Encoding.UTF8.GetBytes("o304854");
+            
+            byte[] placeholderUnicode = Encoding.Unicode.GetBytes("dbeef");
+            byte[] placeholderUTF8 = Encoding.UTF8.GetBytes("dbeef");
             foreach (string filename in Directory.GetFiles("remo"))
             {
                 if (!filename.EndsWith(".remobnd.dcx")) continue;
 
                 DCX.Type compressionType;
                 byte[] dcx = DCX.Decompress(filename, out compressionType);
-                Util.ReplaceCXXXXInByteArray(dcx, replacementUnicode);
-                Util.ReplaceCXXXXInByteArray(dcx, replacementUTF8);
+                if (Path.GetFileName(filename).StartsWith("s51_01_")) // replace phase 1 gael with phase 2 gael
+                {
+                    Util.ReplaceInByteArray(dcx, gael1Unicode, placeholderUnicode);
+                    Util.ReplaceInByteArray(dcx, gael1UTF8, placeholderUTF8);
+                }
+                else if (Path.GetFileName(filename).StartsWith("s39_00_")) // replace yhorm with phase 2 gael
+                {
+                    Util.ReplaceInByteArray(dcx, yhormUnicode, placeholderUnicode);
+                    Util.ReplaceInByteArray(dcx, yhormUTF8, placeholderUTF8);
+                }
+                Util.ReplaceCXXXXInByteArray(dcx, gael1Unicode);
+                Util.ReplaceCXXXXInByteArray(dcx, gael1UTF8);
                 //Util.ReplaceCXXXXInByteArray(dcx, replacementUnicode, 'o');
                 //Util.ReplaceCXXXXInByteArray(dcx, replacementUTF8, 'o');
+                if (Path.GetFileName(filename).StartsWith("s51_01_") ||
+                    Path.GetFileName(filename).StartsWith("s39_00_"))
+                {
+                    Util.ReplaceInByteArray(dcx, placeholderUnicode, gael2Unicode);
+                    Util.ReplaceInByteArray(dcx, placeholderUTF8, gael2UTF8);
+                }
+                //else if (Path.GetFileName(filename).StartsWith("s30_00_")) // replace flying demon things with ladder
+                {
+                    Util.ReplaceInByteArray(dcx, demonUnicode, notDemonUnicode);
+                    Util.ReplaceInByteArray(dcx, demonUTF8, notDemonUTF8);
+                }
+                //else if (Path.GetFileName(filename).StartsWith("s34_01_")) // replace lorian with chair
+                {
+                    //Util.ReplaceInByteArray(dcx, lorianUnicode, notLorianUnicode);
+                    //Util.ReplaceInByteArray(dcx, lorianUTF8, notLorianUTF8);
+                }
                 DCX.Compress(dcx, compressionType, Constants.MOD_DIR + filename);
             }
         }

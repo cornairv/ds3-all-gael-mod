@@ -3594,6 +3594,46 @@ namespace OopsAllGael
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { disabledEnabled, entityId, slotNumber, nameId, decorationId }; }
         }
 
+        abstract class AbstractPlaceNpcSummonSign : MyInstr
+        {
+            public EventArg<EventEnum.SummonSignType> signType;
+            public EventArg<int> summonedNpcEntityId;
+            public EventArg<int> spawnPointEntityId;
+            public EventArg<int> summonEventFlagId;
+            public EventArg<int> dismissalEventFlagId;
+            protected AbstractPlaceNpcSummonSign(InstrType instrType, uint? layerMask) : base(instrType, layerMask)
+            {
+            }
+        }
+        class PlaceNpcSummonSign : AbstractPlaceNpcSummonSign
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
+            public PlaceNpcSummonSign(AbstractEventArg[] args, uint? layerMask) : base(InstrType.PlaceNpcSummonSign, layerMask)
+            {
+                _argTypes = argTypes;
+                signType = (EventArg<EventEnum.SummonSignType>)args[0];
+                summonedNpcEntityId = (EventArg<int>)args[1];
+                spawnPointEntityId = (EventArg<int>)args[2];
+                summonEventFlagId = (EventArg<int>)args[3];
+                dismissalEventFlagId = (EventArg<int>)args[4];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { signType, summonedNpcEntityId, spawnPointEntityId, summonEventFlagId, dismissalEventFlagId }; }
+        }
+        class PlaceNpcSummonSignWorksForNonEmberedPlayers : AbstractPlaceNpcSummonSign
+        {
+            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
+            public PlaceNpcSummonSignWorksForNonEmberedPlayers(AbstractEventArg[] args, uint? layerMask) : base(InstrType.PlaceNpcSummonSignWorksForNonEmberedPlayers, layerMask)
+            {
+                _argTypes = argTypes;
+                signType = (EventArg<EventEnum.SummonSignType>)args[0];
+                summonedNpcEntityId = (EventArg<int>)args[1];
+                spawnPointEntityId = (EventArg<int>)args[2];
+                summonEventFlagId = (EventArg<int>)args[3];
+                dismissalEventFlagId = (EventArg<int>)args[4];
+            }
+            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { signType, summonedNpcEntityId, spawnPointEntityId, summonEventFlagId, dismissalEventFlagId }; }
+        }
+
         abstract class AbstractSkipEvent : MyInstr
         {
             public EventArg<byte> numberOfSkippedLines;
@@ -6386,25 +6426,6 @@ namespace OopsAllGael
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { itemType, itemId, number }; }
         }
-        class PlaceNpcSummonSign : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
-            public EventArg<EventEnum.SummonSignType> signType;
-            public EventArg<int> summonedNpcEntityId;
-            public EventArg<int> spawnPointEntityId;
-            public EventArg<int> summonEventFlagId;
-            public EventArg<int> dismissalEventFlagId;
-            public PlaceNpcSummonSign(AbstractEventArg[] args, uint? layerMask) : base(InstrType.PlaceNpcSummonSign, layerMask)
-            {
-                _argTypes = argTypes;
-                signType = (EventArg<EventEnum.SummonSignType>)args[0];
-                summonedNpcEntityId = (EventArg<int>)args[1];
-                spawnPointEntityId = (EventArg<int>)args[2];
-                summonEventFlagId = (EventArg<int>)args[3];
-                dismissalEventFlagId = (EventArg<int>)args[4];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { signType, summonedNpcEntityId, spawnPointEntityId, summonEventFlagId, dismissalEventFlagId }; }
-        }
         class SetVisibilityOfMessage : MyInstr
         {
             public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Byte };
@@ -7015,25 +7036,6 @@ namespace OopsAllGael
                 unknown = (EventArg<byte>)args[0];
             }
             public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { unknown }; }
-        }
-        class PlaceNpcSummonSignWorksForNonEmberedPlayers : MyInstr
-        {
-            public static EMEVD.Instruction.ArgType[] argTypes = new EMEVD.Instruction.ArgType[] { EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32, EMEVD.Instruction.ArgType.Int32 };
-            public EventArg<EventEnum.SummonSignType> signType;
-            public EventArg<int> summonedNpcEntityId;
-            public EventArg<int> spawnPointEntityId;
-            public EventArg<int> summonEventFlagId;
-            public EventArg<int> dismissalEventFlagId;
-            public PlaceNpcSummonSignWorksForNonEmberedPlayers(AbstractEventArg[] args, uint? layerMask) : base(InstrType.PlaceNpcSummonSignWorksForNonEmberedPlayers, layerMask)
-            {
-                _argTypes = argTypes;
-                signType = (EventArg<EventEnum.SummonSignType>)args[0];
-                summonedNpcEntityId = (EventArg<int>)args[1];
-                spawnPointEntityId = (EventArg<int>)args[2];
-                summonEventFlagId = (EventArg<int>)args[3];
-                dismissalEventFlagId = (EventArg<int>)args[4];
-            }
-            public override AbstractEventArg[] gatherArgs() { return new AbstractEventArg[] { signType, summonedNpcEntityId, spawnPointEntityId, summonEventFlagId, dismissalEventFlagId }; }
         }
         class SetCharacterAiState : MyInstr
         {

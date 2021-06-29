@@ -314,6 +314,64 @@ namespace OopsAllGael
             return matchCount;
         }
 
+        public static int ReplaceCXXXX_XXXXInByteArray(byte[] input, byte[] replacement, char prefix = 'c')
+        {
+            bool unicode;
+            if (replacement.Length == 10)
+            {
+                unicode = false;
+            }
+            else if (replacement.Length == 20)
+            {
+                unicode = true;
+            }
+            else
+            {
+                throw new ArgumentException();
+            }
+
+            int matchLength = 0;
+            int matchCount = 0;
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (unicode && matchLength % 2 == 1)
+                {
+                    if (input[i] == 0)
+                    {
+                        matchLength++;
+                    }
+                    else
+                    {
+                        i -= matchLength;
+                        matchLength = 0;
+                    }
+                }
+                else if (matchLength == 0 && input[i] == prefix)
+                {
+                    matchLength++;
+                }
+                else if (matchLength > 0 && input[i] >= '0' && input[i] <= '9')
+                {
+                    matchLength++;
+                }
+                else
+                {
+                    i -= matchLength;
+                    matchLength = 0;
+                }
+
+                if (matchLength == replacement.Length / 2)
+                {
+                    replacement.CopyTo(input, i - matchLength + 1);
+                    i += replacement.Length - matchLength;
+                    matchLength = 0;
+                    matchCount++;
+                }
+            }
+            return matchCount;
+        }
+
+
         public static InstrType GetInstrType(EMEVD.Instruction instr)
         {
             return (InstrType)((instr.Bank << 8) | instr.ID);

@@ -53,7 +53,8 @@ namespace OopsAllGael
                     .ClearSpeffect(new EventArg<int>() { index = 0 }, 150);
             }
 
-            // crystal sage
+            // crystal sage (disabled because too jank)
+            /*
             else if (eventId == 13305865)
             {
                 eventBuilder
@@ -77,6 +78,35 @@ namespace OopsAllGael
                     .Seek(8)
                     .Remove<InstrWrapper.SetCharacterImmortality>()
                     .Remove<InstrWrapper.SetCharacterHpBarDisplay>(); // remove immortality from clones
+            }
+            */
+
+            // high wall dragon
+            else if (eventId == 13005481)
+            {
+                eventBuilder
+                    .Seek(2).Modify(instr =>
+                    {
+                        ((InstrWrapper.IfCharacterHpRatio)instr).targetHpRatio = 0;
+                    })
+                    .Seek(12).Remove<InstrWrapper.ChangeCharacterEnableState>()
+                    .Skip(4).Remove<InstrWrapper.ChangeCharacterEnableState>();
+            }
+            else if (eventId == 13005480)
+            {
+                eventBuilder.Seek(0).EndUnconditionally(EventEndType.End);
+            }
+
+            // lothric dragons
+            else if (eventId == 13015550)
+            {
+                eventBuilder.Seek(10).Remove<InstrWrapper.SetCharacterImmortality>()
+                    .Skip(7).Remove<InstrWrapper.SetCharacterImmortality>()
+                    .Skip(5).Remove<InstrWrapper.SetCharacterImmortality>();
+            }
+            else if (eventId == 13015551)
+            {
+                eventBuilder.Seek(9).Remove<InstrWrapper.SetCharacterImmortality>();
             }
 
             // deacon AI
@@ -122,6 +152,20 @@ namespace OopsAllGael
             {
                 eventBuilder.Seek(1).Remove(); // event message
             }
+            /*
+            // also need to disable flag check at beginning
+            // fight is more unique with just one Gael so disable this
+            else if (eventId == 13804815)
+            {
+                eventBuilder
+                    .Seek(13).Modify(instr =>
+                    {
+                        ((InstrWrapper.WarpCharacterAndCopyFloor)instr).dummypolyId = 260;
+                    })
+                    .Seek(6).Remove<InstrWrapper.IfCharacterHasEventMessage>()
+                    .IfCharacterHpRatio(ConditionGroup.Main, 3800800, ComparisonType.Less, 0.5f, ComparisonType.Equal, 1);
+            }
+            */
             else if (eventId == 13805809)
             {
                 eventBuilder.Skip(9999).Skip(-31);
@@ -187,6 +231,10 @@ namespace OopsAllGael
             }
 
             // siegward (demon fight)
+            else if (eventId == 13105742)
+            {
+                eventBuilder.Seek(1).Remove<InstrWrapper.IfCharacterAiState>();
+            }
             else if (eventId == 13105746)
             {
                 eventBuilder.Seek(6).Remove<InstrWrapper.SetEventFlag>();
@@ -218,16 +266,85 @@ namespace OopsAllGael
                 eventBuilder.Seek(3).Remove<InstrWrapper.SetEventFlag>();
             }
 
-            // invader
-            else if (eventId == 20005750)
+            // archdragon peak summoner
+            else if (eventId == 13205350)
             {
-                eventBuilder.Seek(13).Remove<InstrWrapper.PlaceNpcSummonSign>()
-                    .SetEventFlag(new EventArg<int> { index = 2 }, OnOff.On);
+                eventBuilder.Seek(2).Remove<InstrWrapper.IfCharacterHasEventMessage>()
+                    .IfCharacterAiState(ConditionGroup.And01, new EventArg<int> { index = 0 }, AiStateType.Combat, ComparisonType.Equal, 1)
+                    .Skip(9999).Skip(-1).Remove<InstrWrapper.EndUnconditionally>();
             }
-            else if (eventId == 20005751)
+            else if (eventId == 13205360 || eventId == 13205370 || eventId == 13205375)
             {
-                eventBuilder.Seek(14).Remove<InstrWrapper.PlaceNpcSummonSign>()
-                    .SetEventFlag(new EventArg<int> { index = 2 }, OnOff.On);
+                eventBuilder.Skip(9999).Skip(-1).Remove<InstrWrapper.EndUnconditionally>();
+            }
+
+            // big wolves
+            else if (eventId == 14505201)
+            {
+                eventBuilder.Seek(15).Remove<InstrWrapper.SetCharacterImmortality>();
+            }
+            else if (eventId == 14505211)
+            {
+                eventBuilder.Seek(7).Remove<InstrWrapper.SetCharacterImmortality>();
+            }
+
+            // gravetender
+            else if (eventId == 14505870)
+            {
+                if (aggressive)
+                {
+                    // start fight when character in area or damages someone instead of checking AI state
+                    eventBuilder.Seek(9).Modify(instr =>
+                    {
+                        ((InstrWrapper.SetCharacterAiState)instr).entityId = 4505860;
+                    })
+                    .Skip(5)
+                    .IfDamageType(ConditionGroup.Or01, 4500263, -1, DamageType.Unspecified)
+                    .IfDamageType(ConditionGroup.Or01, 4500264, -1, DamageType.Unspecified)
+                    .IfDamageType(ConditionGroup.Or01, 4500265, -1, DamageType.Unspecified)
+                    .Remove<InstrWrapper.IfCharacterAiState>()
+                    .Skip(10).Modify(instr =>
+                    {
+                        ((InstrWrapper.SetCharacterAiState)instr).entityId = 4505860;
+                    });
+                }
+            }
+
+            // yuria
+            else if (eventId == 13705647)
+            {
+                eventBuilder.Seek(11).Remove<InstrWrapper.EndIfConditionGroupStateCompiled>();
+            }
+            else if (eventId == 13705644)
+            {
+                eventBuilder.Skip(9999).ForceCharacterDeath(3700721, true);
+            }
+
+            // dancer maiden
+            else if (eventId == 13005601)
+            {
+                eventBuilder.Seek(1).SetCharacterImmortality(3000705, DisabledEnabled.Disabled)
+                    .Skip(9999).ForceCharacterDeath(3000705, true);
+            }
+            else if (eventId == 13005603)
+            {
+                eventBuilder.Skip(5).Remove<InstrWrapper.ForceAnimationPlayback>();
+            }
+
+            // lapp
+            else if (eventId == 15105715)
+            {
+                eventBuilder.Seek(6).Remove<InstrWrapper.SetEventFlag>();
+            }
+
+            // midir
+            else if (eventId == 15105231)
+            {
+                eventBuilder.Seek(1).Modify(instr =>
+                    {
+                        ((InstrWrapper.IfCharacterHpRatio)instr).targetHpRatio = 0;
+                    })
+                    .Skip(9999).SetSpeffect(5100200, 5028);
             }
 
             return false;
@@ -252,12 +369,14 @@ namespace OopsAllGael
             }
 
             // Crystal Sage
+            /*
             if (eventId == 13305861)
             {
                 eventBuilder
                     .Remove<InstrWrapper.IfCharacterHasEventMessage>() // event message
                     .IfCharacterHpRatio(ConditionGroup.Main, 3300850, ComparisonType.Equal, 0, ComparisonType.Equal, 1);
             }
+            */
 
             // abyss watchers
             else if (eventId == 13305814)
@@ -280,7 +399,7 @@ namespace OopsAllGael
             //siegward (demon)
             else if (eventId == 13105742)
             {
-                eventBuilder.Seek(21).AssertType<InstrWrapper.SetCharacterEventTarget>()
+                eventBuilder.Seek(20).AssertType<InstrWrapper.SetCharacterEventTarget>()
                     .SetCharacterAiId(new EventArg<int> { index = 0 }, Constants.GAEL_PHASE1_PARAM_ID)
                     .SetCharacterAiId(new EventArg<int> { index = 2 }, Constants.GAEL_PHASE2_PARAM_ID)
                     .Skip(9999).Skip(-5).AssertType<InstrWrapper.SetEventFlag>()
@@ -298,7 +417,7 @@ namespace OopsAllGael
             else if (eventId == 13105810)
             {
                 eventBuilder.Skip(9999).SetCharacterGravity(3100952, DisabledEnabled.Disabled)
-                    .WarpCharacterAndCopyFloor(3100740, TargetEntityType.Character, 3100952, 20, 3100952); // disable Hodrick
+                    .WarpCharacterAndCopyFloor(3100740, TargetEntityType.Character, 3100952, 20, 3100952); // warp hodrick away when CRGW fight starts
             }
         }
 
@@ -349,7 +468,10 @@ namespace OopsAllGael
                 }
                 else if (myInstr is InstrWrapper.AbstractDisplayBossHealthBar instr10)
                 {
+                    startEnabledEnemies.Remove((int)GetParamValue(initInstr, instr10.entityId));
                     if (!instr10.nameId.isParam && instr10.nameId.Value == 905022 || instr10.nameId.Value == 905023) // extra demon health bars
+                        return false;
+                    if (eventBuilder.event_.ID == 15105812 && !instr10.nameId.isParam && instr10.nameId.Value == 906022) // black flame friede health bar given to halflight?
                         return false;
                     if (IsGael(initInstr, instr10.entityId))
                     {
@@ -421,10 +543,11 @@ namespace OopsAllGael
                             TeamType team = (TeamType)GetParamValue(initInstr, instr14.teamType);
                             if (team == TeamType.HostileNpc || team == TeamType.HostileAlly || team == TeamType.Hostile || team == TeamType.WhitePhantom)
                             {
-                                eventBuilder.ShiftSkips(2)
+                                eventBuilder.ShiftSkips(3)
                                     .Skip(1)
                                     .SetCharacterAiId(instr14.entityId, 620100)
                                     .SetCharacterAiId(GetGael2(gaelMap, instr14.entityId), 620000)
+                                    .SetCharacterTeamType(GetGael2(gaelMap, instr14.entityId), instr14.teamType)
                                     .Skip(-1);
                             }
                         }
@@ -495,7 +618,27 @@ namespace OopsAllGael
                             .Skip(-1);
                     }
                 }
-
+                else if (myInstr is InstrWrapper.AbstractPlaceNpcSummonSign instr19)
+                {
+                    if (IsGael(initInstr, instr19.summonedNpcEntityId))
+                    {
+                        if (instr19.signType.Value == SummonSignType.BlackSign)
+                        {
+                            eventBuilder.Remove().SetEventFlag(instr19.summonEventFlagId, OnOff.On).Skip(-1);
+                        }
+                    }
+                }
+                else if (myInstr is InstrWrapper.SetCharacterAiId instr20)
+                {
+                    if (IsGael(initInstr, instr20.entityId))
+                    {
+                        if (!friendlyEntityIds.Contains((int)GetParamValue(initInstr, instr20.entityId)))
+                        {
+                            instr20.entityId = -1;
+                            instr20.modified = true;
+                        }
+                    }
+                }
 #if false
                 else if (myInstr is InstrWrapper.SetSpeffect instr17)
                 {
