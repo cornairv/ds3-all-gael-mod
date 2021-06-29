@@ -43,6 +43,7 @@ namespace OopsAllGael
                 myGaelPhase1Row.Name = "gael1";
                 Util.SetCellValue(myGaelPhase1Row, "disableIntiliazeDead", true);
                 Util.SetCellValue(myGaelPhase1Row, "disableRespawn", false);
+                Util.SetCellValue(myGaelPhase1Row, "Hp", (int)Math.Ceiling(0.35 * Util.GetCellValue<int>(gaelPhase2Row, "Hp")));
 
                 // create a new entry for Gael phase 2 with modified parameters
                 PARAM.Row myGaelPhase2Row = Util.CopyRow(gaelPhase2Row, paramdef);

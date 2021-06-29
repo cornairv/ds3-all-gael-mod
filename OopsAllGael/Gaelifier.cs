@@ -39,7 +39,14 @@ namespace OopsAllGael
             // Extract Gael scripts
             BND4 gael_bnd = BND4.Read(@"script\m51_01_00_00.luabnd.dcx");
             List<BinderFile> gael_scripts = new List<BinderFile>();
+
+            // Modify Gael's phase 1 health triggers
+            double ratio = (0.35 * 2776) / 1031;
+            double shift = 1 - ratio;
             BinderFile tmp_bndf = gael_bnd.Files.Find(bndf => bndf.Name.EndsWith("620100_battle.lua")) ?? throw new KeyNotFoundException();
+            BitConverter.GetBytes(0.7 - shift).CopyTo(tmp_bndf.Bytes, 0x897);
+            BitConverter.GetBytes(0.5 - shift).CopyTo(tmp_bndf.Bytes, 0x8a0);
+            BitConverter.GetBytes(0.3 - shift).CopyTo(tmp_bndf.Bytes, 0x8a9);
             gael_scripts.Add(tmp_bndf);
 
             // Modify Gael's phase 3 health threshold
