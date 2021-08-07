@@ -69,7 +69,7 @@ namespace OopsAllGael
                             case 5000705: // dreg heap hag
                             case 4500705: // painter 1
                             case 4500706: // painter 2
-                            case 3900470: // profane capital flame bowl
+                            //case 3900470: // profane capital flame bowl
                             //case 3100196: // arrow firing entity
                             case 4100200: // kiln soldier
                             case 5110200: // crusty fillianore
@@ -100,6 +100,18 @@ namespace OopsAllGael
                     }
                     // ballista
                     else if (enemy.EntityID == 3800100)
+                    {
+                        startEnabledEnemies.Remove(enemy.EntityID);
+                        continue;
+                    }
+                    // arrow firing entity
+                    else if (enemy.EntityID == 3100196)
+                    {
+                        startEnabledEnemies.Remove(enemy.EntityID);
+                        continue;
+                    }
+                    // profane capital flame bowl
+                    else if (enemy.EntityID == 3900470)
                     {
                         startEnabledEnemies.Remove(enemy.EntityID);
                         continue;
@@ -299,6 +311,17 @@ namespace OopsAllGael
                         gael2Generators.Add(newGenerator);
                 }
                 msb.Events.Generators.AddRange(gael2Generators);
+
+                for (int i = 0; i < msb.Parts.Objects.Count; i++)
+                {
+                    MSB3.Part.Object obj = msb.Parts.Objects[i];
+
+                    // replace Lorian with lamp
+                    if (obj.ModelName == "o302596")
+                    {
+                        obj.ModelName = "o304849";
+                    }
+                }
 
                 msb.Parts.Enemies.AddRange(new_gaels);
                 msb.Write(Constants.MOD_DIR + msbFilename);

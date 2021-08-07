@@ -112,10 +112,12 @@ namespace OopsAllGael
             // deacon AI
             else if (eventId == 13505810)
             {
-                eventBuilder.Seek(29).Modify(myInstr =>
-                {
-                    ((InstrWrapper.SetCharacterAiState)myInstr).entityId = 3505800;
-                }); // disable AI
+                eventBuilder.Seek(29)
+                    .Modify(myInstr =>
+                    {
+                        ((InstrWrapper.SetCharacterAiState)myInstr).entityId = 3505800;
+                    }) // disable AI
+                    .SetCharacterAiState(3500800, DisabledEnabled.Disabled);
             }
 
             // soul of cinder
@@ -419,6 +421,35 @@ namespace OopsAllGael
                 eventBuilder.Skip(9999).SetCharacterGravity(3100952, DisabledEnabled.Disabled)
                     .WarpCharacterAndCopyFloor(3100740, TargetEntityType.Character, 3100952, 20, 3100952); // warp hodrick away when CRGW fight starts
             }
+
+            // deacon
+            else if (eventId == 13505812)
+            {
+                eventBuilder.Seek(1).Modify(instr =>
+                {
+                    ((InstrWrapper.IfCharacterHpRatio)instr).targetHpRatio = 0.61f;
+                });
+            }
+            else if (eventId == 13505820)
+            {
+                eventBuilder.Seek(4).Modify(instr =>
+                {
+                    ((InstrWrapper.IfCharacterHpRatio)instr).targetHpRatio = 0.61f;
+                });
+            }
+            else if (eventId == 13505821)
+            {
+                eventBuilder.Seek(25)
+                    .Modify(instr =>
+                    {
+                        ((InstrWrapper.IfCharacterHpRatio)instr).targetHpRatio = 0.61f;
+                    })
+                    .Seek(32)
+                    .Modify(instr =>
+                    {
+                        ((InstrWrapper.IfCharacterHpRatio)instr).targetHpRatio = 0.61f;
+                    });
+            }
         }
 
         // Modify one instruction in an event, with paramMap mapping the argument positions to their values
@@ -458,7 +489,7 @@ namespace OopsAllGael
                 }
 
                 // everything else only happens once per event
-                
+
                 if (myInstr is InstrWrapper.ChangeCharacterDispmask instr9)
                 {
                     if (IsGael(initInstr, instr9.entityId))
@@ -497,7 +528,11 @@ namespace OopsAllGael
                 }
                 else if (myInstr is InstrWrapper.IfCharacterHpRatio instr2)
                 {
-                    if (IsGael(initInstr, instr2.targetEntityId))
+                    if (eventBuilder.event_.ID == 13505821)
+                    {
+                        // pass (deacon effect health check)
+                    }
+                    else if (IsGael(initInstr, instr2.targetEntityId))
                     {
                         if (!instr2.targetHpRatio.isParam)
                         {
@@ -521,6 +556,27 @@ namespace OopsAllGael
                                 eventBuilder.Skip(-1);
                             }
                             */
+                        }
+                    }
+                }
+                else if (myInstr is InstrWrapper.IfCharacterHpValue instr21)
+                {
+                    if (eventBuilder.event_.ID == 13505821)
+                    {
+                        // pass (deacon effect health check)
+                    }
+                    else if (IsGael(initInstr, instr21.targetEntityId))
+                    {
+                        if (!instr21.targetHp.isParam)
+                        {
+                            int hp = instr21.targetHp.Value;
+                            if (hp == 0)
+                            {
+                                //Console.WriteLine("IfCharacterHpValue: " +  instr21.targetEntityId + ", " + eventBuilder.event_.ID);
+                                // affects Hodrick (first invasion), archdragon peak summoned NPCs, Father Ariandel
+                                instr21.targetEntityId = GetGael2(gaelMap, instr21.targetEntityId);
+                                instr21.modified = true;
+                            }
                         }
                     }
                 }

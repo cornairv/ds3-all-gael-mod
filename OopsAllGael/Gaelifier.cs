@@ -320,10 +320,10 @@ namespace OopsAllGael
             byte[] demonUTF8 = Encoding.UTF8.GetBytes("o007010");
             byte[] notDemonUnicode = Encoding.Unicode.GetBytes("o000708");
             byte[] notDemonUTF8 = Encoding.UTF8.GetBytes("o000708");
-            byte[] lorianUnicode = Encoding.Unicode.GetBytes("o302596");
-            byte[] lorianUTF8 = Encoding.UTF8.GetBytes("o302596");
-            byte[] notLorianUnicode = Encoding.Unicode.GetBytes("o304854");
-            byte[] notLorianUTF8 = Encoding.UTF8.GetBytes("o304854");
+            byte[] lorianUnicode = Encoding.Unicode.GetBytes("o302596_0000");
+            byte[] lorianUTF8 = Encoding.UTF8.GetBytes("o302596_0000");
+            byte[] notLorianUnicode = Encoding.Unicode.GetBytes("o304849_0000");
+            byte[] notLorianUTF8 = Encoding.UTF8.GetBytes("o304849_0000");
             
             byte[] placeholderUnicode = Encoding.Unicode.GetBytes("dbeef");
             byte[] placeholderUTF8 = Encoding.UTF8.GetBytes("dbeef");
@@ -333,6 +333,7 @@ namespace OopsAllGael
 
                 DCX.Type compressionType;
                 byte[] dcx = DCX.Decompress(filename, out compressionType);
+
                 if (Path.GetFileName(filename).StartsWith("s51_01_")) // replace phase 1 gael with phase 2 gael
                 {
                     Util.ReplaceInByteArray(dcx, gael1Unicode, placeholderUnicode);
@@ -358,10 +359,10 @@ namespace OopsAllGael
                     Util.ReplaceInByteArray(dcx, demonUnicode, notDemonUnicode);
                     Util.ReplaceInByteArray(dcx, demonUTF8, notDemonUTF8);
                 }
-                //else if (Path.GetFileName(filename).StartsWith("s34_01_")) // replace lorian with chair
+                if (Path.GetFileName(filename).StartsWith("s34_01_")) // replace lorian with wax
                 {
-                    //Util.ReplaceInByteArray(dcx, lorianUnicode, notLorianUnicode);
-                    //Util.ReplaceInByteArray(dcx, lorianUTF8, notLorianUTF8);
+                    Util.ReplaceInByteArray(dcx, lorianUnicode, notLorianUnicode);
+                    Util.ReplaceInByteArray(dcx, lorianUTF8, notLorianUTF8);
                 }
                 DCX.Compress(dcx, compressionType, Constants.MOD_DIR + filename);
             }
