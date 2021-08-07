@@ -24,10 +24,10 @@
     <ClInclude Include="DInput8.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Hook.h">
+    <ClInclude Include="CustomHooks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CustomHooks.h">
+    <ClInclude Include="MyDebug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -36,9 +36,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Hook.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CustomHooks.cpp">

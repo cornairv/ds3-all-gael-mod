@@ -1,7 +1,6 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
 #include "DInput8.h"
-#include "Hook.h"
 #include "CustomHooks.h"
 
 void Init()
@@ -15,7 +14,6 @@ void Init()
     {
         OriginalFunction = (DirectInput8Create_t)GetProcAddress(DInput8DLL, "DirectInput8Create");
     }
-    InitializeHooking();
 
     SetupHooks();
 }
