@@ -14,6 +14,7 @@ namespace OopsAllGael
     {
 
         static Dictionary<int, PARAM.Row> npc_params = new Dictionary<int, PARAM.Row>();  // npc param id => npc params
+        static HashSet<int> friendlyNpcSummonIds = new HashSet<int>();
 
 
         public static void Gaelify()
@@ -26,6 +27,7 @@ namespace OopsAllGael
             //Directory.CreateDirectory(Constants.MOD_DIR + @"action\script");
             Directory.CreateDirectory(Constants.MOD_DIR + @"remo");
 
+            PreCheckEvents();
             InsertParams();
             ModifyEvents();
             InsertScripts();
@@ -61,6 +63,38 @@ namespace OopsAllGael
                 BND4 bnd = BND4.Read(filename);
                 bnd.Files.InsertRange(0, gael_scripts);
                 bnd.Write(Constants.MOD_DIR + filename);
+            }
+        }
+
+        static void PreCheckEvents()
+        {
+            foreach (string mapId in Constants.MAP_IDS)
+            {
+                string filename = @"event\" + mapId + ".emevd.dcx";
+                EMEVD emevd = EMEVD.Read(filename);
+
+                List<EMEVD.Event> events = new List<EMEVD.Event>(emevd.Events);
+
+                int i = events.FindIndex(ev => ev.ID == 0);
+                EMEVD.Event startEvent = events[i];
+                events.RemoveAt(i);
+
+                i = events.FindIndex(ev => ev.ID == 50);
+                EMEVD.Event resetEvent = events[i];
+                events.RemoveAt(i);
+
+                EventBuilder startEventBuilder = new EventBuilder()
+                    .Event(startEvent, 0)
+                    .ForEach(delegate(MyInstr myInstr) {
+                        if (myInstr is InstrWrapper.InitializeCommonEvent instr)
+                        {
+                            if (instr.eventId.Value == 20005700 || instr.eventId.Value == 20005701)
+                            {
+                                friendlyNpcSummonIds.Add(instr.parameters[3].Value);
+                            }
+                        }
+                        return false;
+                    });
             }
         }
 
@@ -320,6 +354,8 @@ namespace OopsAllGael
             byte[] demonUTF8 = Encoding.UTF8.GetBytes("o007010");
             byte[] notDemonUnicode = Encoding.Unicode.GetBytes("o000708");
             byte[] notDemonUTF8 = Encoding.UTF8.GetBytes("o000708");
+            byte[] notDemonUnicode2 = Encoding.Unicode.GetBytes("o510706");
+            byte[] notDemonUTF82 = Encoding.UTF8.GetBytes("o510706");
             byte[] lorianUnicode = Encoding.Unicode.GetBytes("o302596_0000");
             byte[] lorianUTF8 = Encoding.UTF8.GetBytes("o302596_0000");
             byte[] notLorianUnicode = Encoding.Unicode.GetBytes("o304849_0000");
@@ -354,8 +390,15 @@ namespace OopsAllGael
                     Util.ReplaceInByteArray(dcx, placeholderUnicode, gael2Unicode);
                     Util.ReplaceInByteArray(dcx, placeholderUTF8, gael2UTF8);
                 }
-                //else if (Path.GetFileName(filename).StartsWith("s30_00_")) // replace flying demon things with ladder
+                if (Path.GetFileName(filename).StartsWith("s5")) // replace flying demon things with ladder
                 {
+                    // after demon prince
+                    Util.ReplaceInByteArray(dcx, demonUnicode, notDemonUnicode2);
+                    Util.ReplaceInByteArray(dcx, demonUTF8, notDemonUTF82);
+                }
+                else
+                {
+                    // after vordt
                     Util.ReplaceInByteArray(dcx, demonUnicode, notDemonUnicode);
                     Util.ReplaceInByteArray(dcx, demonUTF8, notDemonUTF8);
                 }

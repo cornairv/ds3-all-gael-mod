@@ -87,6 +87,19 @@ namespace OopsAllGael
                         enemy.EntityID = newEntityIdCounter++;
                     }
 
+                    if (enemy.EntityID == 3700711 || enemy.EntityID == 3700706) // replace dead Anri with dead small Gael
+                    {
+                        enemy.CharaInitID = 21005;
+                        continue;
+                    }
+                    if (enemy.EntityID == 4500170 // keep Friede Gael as small Gael
+                        || friendlyNpcSummonIds.Contains(enemy.EntityID)) // replace friendly NPC summons with small Gael
+                    {
+                        enemy.NPCParamID = 21005;
+                        //enemy.ThinkParamID = 21005; // needs original AI to find fog wall
+                        enemy.CharaInitID = 21005;
+                        continue;
+                    }
 
                     if (!isFriendly)
                     {
@@ -199,6 +212,12 @@ namespace OopsAllGael
                         groupId == 4505860 || // gravetender
                         groupId == 3305800    // abyss watchers
                         ) != -1)
+                    {
+                        startEnabledEnemies.Remove(enemy.EntityID);
+                    }
+
+                    // halflight guys
+                    if (enemy.EntityID == 5100800 || enemy.EntityID == 5100801 || enemy.EntityID == 5100804 || enemy.EntityID == 5100810 || enemy.EntityID == 5100811)
                     {
                         startEnabledEnemies.Remove(enemy.EntityID);
                     }
