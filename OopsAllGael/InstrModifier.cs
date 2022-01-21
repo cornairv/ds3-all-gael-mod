@@ -170,8 +170,8 @@ namespace OopsAllGael
             */
             else if (eventId == 13805809)
             {
-                eventBuilder.Skip(9999).Skip(-31);
-                for (int i = 0; i < 9; i++)
+                eventBuilder.Skip(9999).Skip(-32);
+                for (int i = 0; i < 10; i++)
                 {
                     eventBuilder.Remove<InstrWrapper.SetSpeffect>();
                 }
@@ -180,6 +180,30 @@ namespace OopsAllGael
                 {
                     eventBuilder.Remove<InstrWrapper.SetSpeffect>();
                 }
+            }
+            else if (eventId == 13805810)
+            {
+                eventBuilder.Seek(7);
+                for (int i = 0; i < 10; i++)
+                {
+                    eventBuilder.Remove<InstrWrapper.SetSpeffect>();
+                }
+                eventBuilder.Skip(1);
+                for (int i = 0; i < 11; i++)
+                {
+                    eventBuilder.Remove<InstrWrapper.SetSpeffect>();
+                }
+            }
+            else if (eventId == 13805813)
+            {
+                eventBuilder.Skip(9999).Skip(-1)
+                    .Remove<InstrWrapper.SetSpeffect>()
+                    .Skip(-5)
+                    .Remove<InstrWrapper.SetSpeffect>()
+                    .Skip(-6)
+                    .Remove<InstrWrapper.SetSpeffect>()
+                    .Skip(-6)
+                    .Remove<InstrWrapper.SetSpeffect>();
             }
 
             // demons
