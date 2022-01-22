@@ -207,17 +207,18 @@ namespace OopsAllGael
                         enemy.Position = new Vector3(-15.522f, -236.421f, -551.041f);
                     }
 
-                    // gravetender wolves
+                    // make sure boss minions start disabled
                     if (Array.FindIndex(enemy.EntityGroups, groupId =>
                         groupId == 4505860 || // gravetender
-                        groupId == 3305800    // abyss watchers
+                        groupId == 3305800 || // abyss watchers
+                        groupId == 3505800    // deacons
                         ) != -1)
                     {
                         startEnabledEnemies.Remove(enemy.EntityID);
                     }
 
                     // halflight guys
-                    if (enemy.EntityID == 5100800 || enemy.EntityID == 5100801 || enemy.EntityID == 5100804 || enemy.EntityID == 5100810 || enemy.EntityID == 5100811)
+                    if (enemy.EntityID == 5100800 || enemy.EntityID == 5100801 || enemy.EntityID == 5100803 || enemy.EntityID == 5100804 || enemy.EntityID == 5100810 || enemy.EntityID == 5100811)
                     {
                         startEnabledEnemies.Remove(enemy.EntityID);
                     }

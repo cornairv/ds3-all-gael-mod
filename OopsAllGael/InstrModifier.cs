@@ -109,6 +109,20 @@ namespace OopsAllGael
                 eventBuilder.Seek(9).Remove<InstrWrapper.SetCharacterImmortality>();
             }
 
+            // lorian/lothric
+            else if (eventId == 13415843)
+            {
+                eventBuilder.Seek(1).Remove<InstrWrapper.SetCharacterImmortality>(); // make lorian not immortal in second phase
+            }
+            else if (eventId == 13410832)
+            {
+                // don't end the fight until they're both dead
+                eventBuilder.Seek(1)
+                    .IfCharacterHpRatio(ConditionGroup.Main, 3410831, ComparisonType.Lessorequal, 0, ComparisonType.Equal, 1)
+                    .IfCharacterHpRatio(ConditionGroup.Main, 3410830, ComparisonType.Lessorequal, 0, ComparisonType.Equal, 1)
+                    .GotoUnconditionally(Label.Label1);
+            }
+
             // deacon AI
             else if (eventId == 13505810)
             {
@@ -371,6 +385,32 @@ namespace OopsAllGael
                         ((InstrWrapper.IfCharacterHpRatio)instr).targetHpRatio = 0;
                     })
                     .Skip(9999).SetSpeffect(5100200, 5028);
+            }
+
+            // pontiff
+            else if (eventId == 13705880)
+            {
+                eventBuilder.Seek(11).Remove<InstrWrapper.SetSpeffect>();
+            }
+            else if (eventId == 13705882)
+            {
+                eventBuilder.Seek(6).Remove<InstrWrapper.SetSpeffect>();
+            }
+            else if (eventId == 13705886)
+            {
+                // these speffects make him do no damage
+                eventBuilder.Seek(4)
+                    .Remove<InstrWrapper.SetSpeffect>()
+                    .Remove<InstrWrapper.SetSpeffect>();
+            }
+
+            // profane flame
+            else if (eventId == 13905475)
+            {
+                // only turn off the flame when the Gaels die, otherwise it never activates
+                eventBuilder.Seek(1)
+                    .Remove<InstrWrapper.IfCharacterAiState>()
+                    .Remove<InstrWrapper.IfInOutsideArea>();
             }
 
             return false;
